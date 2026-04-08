@@ -125,6 +125,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..')));
 
+app.get('/', (req, res) => {
+    res.send('Server is running');
+});
+
+app.get('/home', (req, res) => {
+    res.sendFile(path.join(__dirname, '../index.html'));
+});
+
 // Routes
 app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
