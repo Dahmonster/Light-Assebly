@@ -1,5 +1,5 @@
 // Contact Page Functionality
-const API_BASE = 'https://light-assembly.onrender.com/api';
+
 async function submitContactForm(e) {
     e.preventDefault();
 
