@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-const API_BASE = 'https://light-assembly.onrender.com/api';
+
 let currentSection = 'overview';
 let editingId = null;
 let editingType = null;
