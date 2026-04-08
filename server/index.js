@@ -96,31 +96,7 @@ async function initDatabase() {
 }
 
 // Seed data
-async function seedData() {
-    // Hero Slides
-    await db.run(`INSERT INTO hero_slides (imageUrl, caption, orderIndex)
-        VALUES (?, ?, ?)`, ['https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070', 'Welcome to Light Evangelist Ministry', 0]);
-    await db.run(`INSERT INTO hero_slides (imageUrl, caption, orderIndex)
-        VALUES (?, ?, ?)`, ['https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2132', 'Empowering the Next Generation', 1]);
-
-    // Director Message
-    await db.run(`INSERT INTO director_message (title, message, imageUrl)
-        VALUES (?, ?, ?)`, ['THE DIRECTOR', 'Welcome to our school. We are committed to academic excellence and moral uprightness.', 'https://images.unsplash.com/photo-1544717297-fa95b6ee9643?q=80&w=2069']);
-
-    // Staff Members
-    await db.run(`INSERT INTO staff_members (name, position, imageUrl, orderIndex)
-        VALUES (?, ?, ?, ?)`, ['John Doe', 'Principal', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1974', 0]);
-    await db.run(`INSERT INTO staff_members (name, position, imageUrl, orderIndex)
-        VALUES (?, ?, ?, ?)`, ['Jane Smith', 'Vice Principal', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1976', 1]);
-
-    // News Post
-    await db.run(`INSERT INTO news_posts (title, slug, previewText, content, featuredImage)
-        VALUES (?, ?, ?, ?, ?)`, ['Resumption Date Announced', 'resumption-date', 'School resumes on the 10th of next month.', '<p>School resumes on the 10th of next month. All students are expected to be present.</p>', 'https://images.unsplash.com/photo-1588072432836-e10032774350?q=80&w=2072']);
-
-    // Background Image
-    await db.run(`INSERT INTO background_images (url, orderIndex)
-        VALUES (?, ?)`, ['https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071', 0]);
-} function seedData() {
+function seedData() {
     const count = await db.get('SELECT COUNT(*) as cnt FROM hero_slides');
     
     if (count.cnt === 0) {
