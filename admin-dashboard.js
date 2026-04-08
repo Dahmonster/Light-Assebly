@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
             });
 
-            alert('Director message saved successfully');
+            alert('church vision saved successfully');
         });
     }
 
