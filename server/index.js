@@ -96,7 +96,7 @@ async function initDatabase() {
 }
 
 // Seed data
-function seedData() {
+async function seedData() {
     const count = await db.get('SELECT COUNT(*) as cnt FROM hero_slides');
     
     if (count.cnt === 0) {
