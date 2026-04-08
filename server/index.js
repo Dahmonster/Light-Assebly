@@ -128,7 +128,7 @@ app.use(express.static('../public'));
 // Routes
 app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
-    if (username === 'admin' && password === 'admin') {
+    if (username === 'admin' && password === 'lightAdmin') {
         res.json({ message: 'Logged in' });
     } else {
         res.status(401).json({ message: 'Invalid credentials' });
