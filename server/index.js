@@ -15,7 +15,7 @@ let db;
 // Initialize Database
 async function initDatabase() {
     db = await open({
-        filename: './lightMinistry.db',
+        filename: './data/lightMinistry.db',
         driver: sqlite3.Database
     });
 
