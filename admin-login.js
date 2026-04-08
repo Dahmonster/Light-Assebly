@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://light-assembly.onrender.com/api';
 
 async function handleLogin(e) {
     e.preventDefault();
