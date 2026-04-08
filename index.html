@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light Assembly International Ministry - Home</title>
+    <link rel="stylesheet" href="common.css">
+    <link rel="stylesheet" href="home.css">
+</head>
+<body>
+    <!-- Header & Navigation -->
+    <header class="header" id="header">
+        <div class="container">
+            <div class="header-left">
+                <div class="logo-section">
+                    <img src="logo_converted.svg" alt="church Logo" class="logo">
+                    <div class="school-name">
+                        <span>LIGHT ASSEMBLY</span>
+                        <span>INTERNATIONAL MINISTRY</span>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="nav-menu" id="navMenu">
+                <a href="index.html" class="nav-link active">Home</a>
+                <a href="News.html" class="nav-link">Sermons</a>
+                <a href="gallery.html" class="nav-link">Gallery</a>
+                <a href="events.html" class="nav-link">Events</a>
+                <a href="contact.html" class="nav-link">Contact</a>
+            </nav>
+
+            <button class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Dynamic Background -->
+    <div class="dynamic-background" id="dynamicBg"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Text Overlay -->
+        <section class="hero-overlay">
+            <div class="hero-text glass-dark">
+                <h1>Light Assembly <span class="highlight">Church</span></h1>
+                <p>full Bible-believing church committed to transforming lives and molding destinies.</p>
+            </div>
+        </section>
+
+        <!-- Hero Slider -->
+        <section class="hero-slider-section">
+            <div class="hero-slider" id="heroSlider">
+                <div class="slider-container">
+                    <div class="slides-wrapper" id="slidesWrapper"></div>
+                </div>
+                <button class="slider-btn prev" id="prevSlide">❮</button>
+                <button class="slider-btn next" id="nextSlide">❯</button>
+                <div class="slider-dots" id="sliderDots"></div>
+            </div>
+        </section>
+
+        <!-- Director Card -->
+        <section class="director-section" id="directorSection"></section>
+
+        <!-- Staff Slider -->
+        <section class="staff-slider-section">
+            <div class="container">
+                <h2 class="section-title">Church Leadership</h2>
+                <div class="staff-slider" id="staffSlider"></div>
+            </div>
+        </section>
+
+        <section class="service-times-section">
+            <div class="container">
+                <h2 class="section-title">Service Times</h2>
+        
+                <div class="services-slider">
+                    <div class="services-track">
+        
+                        <div class="service-card">
+                            <h3>Intercessory Prayers </h3>
+                            <p>Tuesdays – 6:00 PM to 7:45 PM</p>
+                        </div>
+        
+                        <div class="service-card">
+                            <h3>Word Alive</h3>
+                            <p>Thursdays – 6:00 PM to 7:45 PM</p>
+                        </div>
+        
+                        <div class="service-card">
+                            <h3>Bible Studies</h3>
+                            <p>Sundays – 7:45 AM to 8:30 AM followed by Service – 8:30 AM to 10:00 </p>
+                        </div>
+        
+                        <div class="service-card">
+                            <h3>Special Deliverance Service</h3>
+                            <p>Every First Sunday – 10:00 AM to 12:00 PM</p>
+                        </div>
+        
+                        <div class="service-card">
+                            <h3>Monthly Vigil</h3>
+                            <p>Every First Friday</p>
+                        </div>
+        
+                        <!-- duplicated for smooth loop -->
+                        <div class="service-card">
+                            <h3>Intercessory Prayers </h3>
+                            <p>Tuesdays – 6:00 PM to 7:45 PM</p>
+                        </div>
+        
+                        <div class="service-card">
+                            <h3>Word Alive</h3>
+                            <p>Thursdays – 6:00 PM to 7:45 PM</p>
+                        </div>
+        
+                        <div class="service-card">
+                            <h3>Bible Studies</h3>
+                            <p>Sundays – 7:45 AM to 8:30 AM followed by Service – 8:30 AM to 10:00 </p>
+                        </div>
+        
+                    </div>
+                </div>
+        
+            </div>
+        </section>
+
+        <!-- Latest News -->
+        <section class="news-section">
+            <div class="container">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Sermons</h2>
+                        <div class="underline"></div>
+                    </div>
+                    <a href="news.html" class="view-all-link">View All Sermons →</a>
+                </div>
+                <div class="news-grid" id="newsGrid"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer" id="footer"></footer>
+
+    <script src="common.js"></script>
+    <script src="home.js"></script>
+</body>
+</html>

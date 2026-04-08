@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sermons - Light Assembly International Ministry</title>
+    <link rel="stylesheet" href="common.css">
+    <link rel="stylesheet" href="news.css">
+</head>
+<body>
+    <!-- Header & Navigation -->
+    <header class="header" id="header">
+        <div class="container">
+            <div class="header-left">
+                <div class="logo-section">
+                    <img src="logo_converted.svg" alt="church Logo" class="logo">
+                    <div class="school-name">
+                        <span>LIGHT ASSEMBLY</span>
+                        <span>INTERNATIONAL MINISTRY</span>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="nav-menu" id="navMenu">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="news.html" class="nav-link active">Sermons</a>
+                <a href="gallery.html" class="nav-link">Gallery</a>
+                <a href="events.html" class="nav-link">Events</a>
+                <a href="contact.html" class="nav-link">Contact</a>
+            </nav>
+
+            <button class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content news-page">
+        <section class="news-header">
+            <div class="container">
+                <h1>Sermons & Updates</h1>
+                <p>Stay informed with the latest Updates and Sermons from our church</p>
+            </div>
+        </section>
+
+        <section class="news-detail-container">
+            <div class="container">
+                <div id="newsDetailView" class="news-detail-view" style="display: none;">
+                    <!-- Single article view populated by JS -->
+                </div>
+
+                <div id="newsListView" class="news-list-view">
+                    <!-- News list populated by JS -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer" id="footer"></footer>
+
+    <script src="common.js"></script>
+    <script src="news.js"></script>
+</body>
+</html>

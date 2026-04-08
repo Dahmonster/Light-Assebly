@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery - Light Assembly International Ministry </title>
+    <link rel="stylesheet" href="common.css">
+    <link rel="stylesheet" href="gallery.css">
+</head>
+<body>
+    <!-- Header & Navigation -->
+    <header class="header" id="header">
+        <div class="container">
+            <div class="header-left">
+                <div class="logo-section">
+                    <img src="logo_converted.svg" alt="church Logo" class="logo">
+                    <div class="school-name">
+                        <span>LIGHT ASSEMBLY</span>
+                        <span>INTERNATIONAL MINISTRY</span>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="nav-menu" id="navMenu">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="news.html" class="nav-link">Sermons</a>
+                <a href="gallery.html" class="nav-link active">Gallery</a>
+                <a href="events.html" class="nav-link">Events</a>
+                <a href="contact.html" class="nav-link">Contact</a>
+            </nav>
+
+            <button class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content gallery-page">
+        <section class="gallery-header">
+            <div class="container">
+                <h1>Gallery</h1>
+                <p>Explore moments and memories from our church</p>
+            </div>
+        </section>
+
+        <section class="gallery-container">
+            <div class="container">
+                <div class="gallery-grid" id="galleryGrid"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <button class="lightbox-close" id="lightboxClose">&times;</button>
+        <button class="lightbox-prev" id="lightboxPrev">❮</button>
+        <button class="lightbox-next" id="lightboxNext">❯</button>
+        <div class="lightbox-content" id="lightboxContent">
+            <img id="lightboxImage" src="" alt="">
+            <div class="lightbox-caption" id="lightboxCaption"></div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer" id="footer"></footer>
+
+    <script src="common.js"></script>
+    <script src="gallery.js"></script>
+</body>
+</html>
