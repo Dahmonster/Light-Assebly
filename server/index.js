@@ -16,7 +16,7 @@ let db;
 // Initialize Database
 async function initDatabase() {
     db = await open({
-        filename: './data/lightMinistry.db',
+        filename: path.join(__dirname, '../data/lightMinistry.db'),
         driver: sqlite3.Database
     });
 
@@ -124,7 +124,7 @@ async function seedData() {
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/', (req, res) => {
     res.send('Server is running');
@@ -378,3 +378,5 @@ async function startServer() {
         console.log(`Server running on port ${PORT}`);
     });
 }
+
+startServer();
