@@ -21,7 +21,7 @@ async function api(endpoint, options = {}) {
 }
 
 /***********************
- * UPLOAD HELPER (CLOUDINARY)
+ * CLOUDINARY UPLOAD HELPER
  ***********************/
 async function uploadFile(endpoint, file, extra = {}) {
     const form = new FormData();
@@ -53,7 +53,10 @@ function checkAuth() {
         window.location.href = "login.html";
         return false;
     }
-    document.getElementById("userName").textContent = user;
+
+    const userNameEl = document.getElementById("userName");
+    if (userNameEl) userNameEl.textContent = user;
+
     return true;
 }
 
@@ -70,21 +73,24 @@ document.addEventListener("DOMContentLoaded", initDirector);
 async function initDirector() {
     const data = await api("/director-message");
 
-    if (document.getElementById("directorTitle")) {
-        directorTitle.value = data?.title || "";
-        directorMessage.value = data?.message || "";
-        directorImage.value = data?.imageUrl || "";
-    }
+    const title = document.getElementById("directorTitle");
+    const message = document.getElementById("directorMessage");
+    const image = document.getElementById("directorImage");
+    const form = document.getElementById("directorForm");
 
-    document.getElementById("directorForm")?.addEventListener("submit", async e => {
+    if (title) title.value = data?.title || "";
+    if (message) message.value = data?.message || "";
+    if (image) image.value = data?.imageUrl || "";
+
+    form?.addEventListener("submit", async (e) => {
         e.preventDefault();
 
         await api("/director-message", {
             method: "PUT",
             body: JSON.stringify({
-                title: directorTitle.value,
-                message: directorMessage.value,
-                imageUrl: directorImage.value
+                title: title.value,
+                message: message.value,
+                imageUrl: image.value
             })
         });
 
@@ -131,17 +137,24 @@ async function loadOverview() {
         api("/contact-messages")
     ]);
 
-    newsCount.textContent = news.length;
-    staffCount.textContent = staff.length;
-    eventsCount.textContent = events.length;
-    messagesCount.textContent = messages.length;
+    const newsCount = document.getElementById("newsCount");
+    const staffCount = document.getElementById("staffCount");
+    const eventsCount = document.getElementById("eventsCount");
+    const messagesCount = document.getElementById("messagesCount");
+
+    if (newsCount) newsCount.textContent = news.length;
+    if (staffCount) staffCount.textContent = staff.length;
+    if (eventsCount) eventsCount.textContent = events.length;
+    if (messagesCount) messagesCount.textContent = messages.length;
 }
 
 /***********************
- * HERO SLIDES
+ * HERO SLIDES (CLOUDINARY)
  ***********************/
 async function loadHero() {
     const items = await api("/hero-slides");
+
+    const heroList = document.getElementById("heroList");
 
     heroList.innerHTML = items.map(i => `
         <div class="item-card">
@@ -149,7 +162,7 @@ async function loadHero() {
             <div>${i.caption || ""}</div>
 
             <input type="file" id="heroFile-${i.id}" />
-            <input type="text" id="heroCaption-${i.id}" placeholder="caption" />
+            <input type="text" id="heroCaption-${i.id}" value="${i.caption || ""}" />
 
             <button onclick="updateHero(${i.id})">Update</button>
             <button onclick="deleteHero(${i.id})">Delete</button>
@@ -161,7 +174,9 @@ async function addHero() {
     const file = document.getElementById("heroFile").files[0];
     const caption = document.getElementById("heroCaption").value;
 
-    await uploadFile("/hero-slides", file, { caption });
+    if (!file) return alert("Select image");
+
+    await uploadFile("/hero-slides", file, { caption, orderIndex: 0 });
 
     loadHero();
 }
@@ -170,8 +185,9 @@ async function updateHero(id) {
     const file = document.getElementById(`heroFile-${id}`).files[0];
     const caption = document.getElementById(`heroCaption-${id}`).value;
 
+    // SIMPLE RULE: always re-upload if file exists
     if (file) {
-        await uploadFile("/hero-slides", file, { caption });
+        await uploadFile("/hero-slides", file, { caption, orderIndex: 0 });
     } else {
         await api(`/hero-slides/${id}`, {
             method: "PUT",
@@ -188,10 +204,12 @@ async function deleteHero(id) {
 }
 
 /***********************
- * STAFF
+ * STAFF (CLOUDINARY)
  ***********************/
 async function loadStaff() {
     const items = await api("/staff-members");
+
+    const staffList = document.getElementById("staffList");
 
     staffList.innerHTML = items.map(i => `
         <div class="item-card">
@@ -209,11 +227,12 @@ async function loadStaff() {
 
 async function addStaff() {
     const file = document.getElementById("staffFile").files[0];
+    const name = document.getElementById("staffName").value;
+    const position = document.getElementById("staffPosition").value;
 
-    await uploadFile("/staff-members", file, {
-        name: staffName.value,
-        position: staffPosition.value
-    });
+    if (!file) return alert("Select image");
+
+    await uploadFile("/staff-members", file, { name, position });
 
     loadStaff();
 }
@@ -222,10 +241,7 @@ async function updateStaff(id) {
     const file = document.getElementById(`staffFile-${id}`).files[0];
 
     if (file) {
-        await uploadFile("/staff-members", file, {
-            name: staffName.value,
-            position: staffPosition.value
-        });
+        await uploadFile("/staff-members", file);
     }
 
     loadStaff();
@@ -242,6 +258,8 @@ async function deleteStaff(id) {
 async function loadBackground() {
     const items = await api("/background-images");
 
+    const backgroundList = document.getElementById("backgroundList");
+
     backgroundList.innerHTML = items.map(i => `
         <div>
             <img src="${i.url}" width="120"/>
@@ -251,7 +269,11 @@ async function loadBackground() {
 
 async function addBackground() {
     const file = document.getElementById("bgFile").files[0];
+
+    if (!file) return alert("Select image");
+
     await uploadFile("/background-images", file);
+
     loadBackground();
 }
 
@@ -260,6 +282,8 @@ async function addBackground() {
  ***********************/
 async function loadGallery() {
     const items = await api("/gallery-items");
+
+    const galleryList = document.getElementById("galleryList");
 
     galleryList.innerHTML = items.map(i => `
         <div>
@@ -273,20 +297,25 @@ async function loadGallery() {
 
 async function addGallery() {
     const file = document.getElementById("galleryFile").files[0];
-    const type = galleryType.value;
+    const type = document.getElementById("galleryType").value;
+    const caption = document.getElementById("galleryCaption").value;
 
     if (type === "image") {
+        if (!file) return alert("Select image");
+
         await uploadFile("/gallery-items", file, {
             type,
-            caption: galleryCaption.value
+            caption
         });
     } else {
+        const videoUrl = document.getElementById("galleryVideoUrl").value;
+
         await api("/gallery-items", {
             method: "POST",
             body: JSON.stringify({
                 type,
-                videoUrl: galleryVideoUrl.value,
-                caption: galleryCaption.value
+                videoUrl,
+                caption
             })
         });
     }
@@ -299,6 +328,8 @@ async function addGallery() {
  ***********************/
 async function loadMessages() {
     const items = await api("/contact-messages");
+
+    const messagesList = document.getElementById("messagesList");
 
     messagesList.innerHTML = items.map(m => `
         <div class="${m.isRead ? "" : "unread"}">
@@ -333,7 +364,8 @@ document.addEventListener("DOMContentLoaded", () => {
             switchSection(e.target.dataset.section)
         ));
 
-    document.getElementById("logoutBtn")?.addEventListener("click", handleLogout);
+    document.getElementById("logoutBtn")
+        ?.addEventListener("click", handleLogout);
 
     loadOverview();
 });
