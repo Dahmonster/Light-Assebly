@@ -1,18 +1,30 @@
-// Events Page Functionality (CLOUDINARY READY FIXED)
+/***********************
+ * EVENTS PAGE (CLOUDINARY READY)
+ ***********************/
 
 let events = [];
 
 async function loadEvents() {
-    events = await Utils.fetchAPI('/events') || [];
+    try {
+        events = await Utils.fetchAPI('/events') || [];
 
-    // Sort by date (upcoming first)
-    events.sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
+        // Safety: remove broken/null events
+        events = events.filter(e => e && e.eventDate);
 
-    renderEvents();
+        // Sort by date (upcoming first)
+        events.sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
+
+        renderEvents();
+
+    } catch (err) {
+        console.error("Failed to load events:", err);
+    }
 }
 
 function renderEvents() {
     const grid = document.getElementById('eventsGrid');
+
+    if (!grid) return;
 
     if (!events.length) {
         grid.innerHTML = `
@@ -23,28 +35,35 @@ function renderEvents() {
         return;
     }
 
+    const now = new Date();
+
     grid.innerHTML = events.map(event => {
 
         const eventDate = new Date(event.eventDate);
-        const now = new Date();
         const isUpcoming = eventDate >= now;
 
         return `
             <div class="event-card">
 
-                ${event.imageUrl
-                    ? `<img src="${event.imageUrl}" alt="${event.title}" class="event-image">`
-                    : `<div class="event-image-placeholder"></div>`
-                }
+                ${event.imageUrl ? `
+                    <img 
+                        src="${event.imageUrl}" 
+                        alt="${event.title}" 
+                        class="event-image"
+                    />
+                ` : `
+                    <div class="event-image-placeholder"></div>
+                `}
 
                 <div class="event-content">
 
-                    ${isUpcoming
-                        ? `<span class="event-badge">Upcoming</span>`
-                        : `<span class="event-badge past">Past</span>`
-                    }
+                    <span class="event-badge ${isUpcoming ? '' : 'past'}">
+                        ${isUpcoming ? 'Upcoming' : 'Past'}
+                    </span>
 
-                    <h3 class="event-title">${event.title}</h3>
+                    <h3 class="event-title">
+                        ${event.title || 'Untitled Event'}
+                    </h3>
 
                     <div class="event-date">
                         📅 ${formatEventDate(event.eventDate)}
@@ -74,6 +93,8 @@ function renderEvents() {
  * DATE FORMATTERS
  ***********************/
 function formatEventDate(dateString) {
+    if (!dateString) return "";
+
     const date = new Date(dateString);
 
     return date.toLocaleDateString('en-US', {
@@ -85,6 +106,8 @@ function formatEventDate(dateString) {
 }
 
 function formatEventTime(dateString) {
+    if (!dateString) return "";
+
     const date = new Date(dateString);
 
     return date.toLocaleTimeString('en-US', {
