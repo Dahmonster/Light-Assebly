@@ -1,3 +1,5 @@
+const dbPath = path.join(__dirname, '../data/lightMinistry.db');
+
 import fs from 'fs';
 import express from 'express';
 import cors from 'cors';
