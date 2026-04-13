@@ -1,5 +1,3 @@
-const dbPath = path.join(__dirname, '../data/lightMinistry.db');
-
 import fs from 'fs';
 import express from 'express';
 import cors from 'cors';
@@ -11,6 +9,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const dbPath = path.join(__dirname, '../data/lightMinistry.db');
 const app = express();
 
 let db;
@@ -135,7 +134,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/home', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 // Routes
@@ -366,7 +365,7 @@ app.post('/api/uploads', (req, res) => {
 
 // Start server
 async function startServer() {
-    const dbPath = path.join(__dirname, '.../data/lightMinistry.db');
+
 
     // Only seed if DB file doesn't exist yet
     const dbExists = fs.existsSync(dbPath);
