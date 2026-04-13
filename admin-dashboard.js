@@ -1,7 +1,10 @@
+/***********************
+ * CONFIG
+ ***********************/
 const API_BASE = "https://light-assembly.onrender.com/api";
 
 /***********************
- * API HELPER (UNIFIED)
+ * API HELPER
  ***********************/
 async function api(endpoint, options = {}) {
     const res = await fetch(API_BASE + endpoint, {
@@ -21,14 +24,17 @@ async function api(endpoint, options = {}) {
 }
 
 /***********************
- * CLOUDINARY UPLOAD HELPER
+ * CLOUDINARY UPLOAD (IMPORTANT FIXED)
+ * -> ALWAYS SEND FILES AS FormData
  ***********************/
-async function upload(endpoint, file, extra = {}) {
+async function uploadFile(endpoint, file, extra = {}) {
     const form = new FormData();
+
+    // backend expects "image"
     form.append("image", file);
 
-    Object.entries(extra).forEach(([k, v]) => {
-        form.append(k, v);
+    Object.entries(extra).forEach(([key, value]) => {
+        form.append(key, value);
     });
 
     const res = await fetch(API_BASE + endpoint, {
@@ -49,13 +55,14 @@ async function upload(endpoint, file, extra = {}) {
  ***********************/
 function checkAuth() {
     const user = localStorage.getItem("adminUser");
+
     if (!user) {
         window.location.href = "login.html";
         return false;
     }
 
-    const userEl = document.getElementById("userName");
-    if (userEl) userEl.textContent = user;
+    const nameEl = document.getElementById("userName");
+    if (nameEl) nameEl.textContent = user;
 
     return true;
 }
@@ -66,7 +73,7 @@ function handleLogout() {
 }
 
 /***********************
- * SECTION HANDLER
+ * SECTION SWITCHER
  ***********************/
 let currentSection = "overview";
 
@@ -78,23 +85,20 @@ function switchSection(section) {
     document.querySelector(`[data-section="${section}"]`)?.classList.add("active");
 
     currentSection = section;
+
+    const loaders = {
+        overview: loadOverview,
+        background: loadBackground,
+        hero: loadHero,
+        staff: loadStaff,
+        news: loadNews,
+        events: loadEvents,
+        gallery: loadGallery,
+        messages: loadMessages
+    };
+
     loaders[section]?.();
 }
-
-/***********************
- * LOADERS MAP (CLEAN)
- ***********************/
-const loaders = {
-    overview: loadOverview,
-    background: loadBackground,
-    hero: loadHero,
-    staff: loadStaff,
-    news: loadNews,
-    events: loadEvents,
-    gallery: loadGallery,
-    messages: loadMessages,
-    director: loadDirector
-};
 
 /***********************
  * OVERVIEW
@@ -113,30 +117,9 @@ async function loadOverview() {
     setText("messagesCount", messages.length);
 }
 
-/***********************
- * DIRECTOR MESSAGE
- ***********************/
-async function loadDirector() {
-    const data = await api("/director-message");
-
-    setValue("directorTitle", data?.title);
-    setValue("directorMessage", data?.message);
-    setValue("directorImage", data?.imageUrl);
-
-    document.getElementById("directorForm")?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        await api("/director-message", {
-            method: "PUT",
-            body: JSON.stringify({
-                title: getValue("directorTitle"),
-                message: getValue("directorMessage"),
-                imageUrl: getValue("directorImage")
-            })
-        });
-
-        alert("Updated successfully");
-    });
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
 }
 
 /***********************
@@ -145,35 +128,38 @@ async function loadDirector() {
 async function loadHero() {
     const items = await api("/hero-slides");
 
-    setHTML("heroList", items.map(i => `
+    const list = document.getElementById("heroList");
+    if (!list) return;
+
+    list.innerHTML = items.map(i => `
         <div class="item-card">
-            <img src="${i.imageUrl}" width="100" />
-            <p>${i.caption || ""}</p>
+            <img src="${i.imageUrl}" width="100"/>
 
             <input type="file" id="heroFile-${i.id}" />
-            <input type="text" id="heroCaption-${i.id}" placeholder="caption" />
+            <input type="text" id="heroCaption-${i.id}" value="${i.caption || ""}" />
 
             <button onclick="updateHero(${i.id})">Update</button>
             <button onclick="deleteHero(${i.id})">Delete</button>
         </div>
-    `));
+    `).join("");
 }
 
 async function addHero() {
-    const file = getFile("heroFile");
-    const caption = getValue("heroCaption");
+    const file = document.getElementById("heroFile").files[0];
+    const caption = document.getElementById("heroCaption").value;
 
-    await upload("/hero-slides", file, { caption });
+    if (!file) return alert("Select image");
 
+    await uploadFile("/hero-slides", file, { caption });
     loadHero();
 }
 
 async function updateHero(id) {
-    const file = getFile(`heroFile-${id}`);
-    const caption = getValue(`heroCaption-${id}`);
+    const file = document.getElementById(`heroFile-${id}`).files[0];
+    const caption = document.getElementById(`heroCaption-${id}`).value;
 
     if (file) {
-        await upload("/hero-slides", file, { caption });
+        await uploadFile("/hero-slides", file, { caption });
     } else {
         await api(`/hero-slides/${id}`, {
             method: "PUT",
@@ -195,38 +181,48 @@ async function deleteHero(id) {
 async function loadStaff() {
     const items = await api("/staff-members");
 
-    setHTML("staffList", items.map(i => `
+    const list = document.getElementById("staffList");
+    if (!list) return;
+
+    list.innerHTML = items.map(i => `
         <div class="item-card">
-            <img src="${i.imageUrl}" width="80" />
-            <p>${i.name}</p>
-            <small>${i.position}</small>
+            <img src="${i.imageUrl}" width="80"/>
+
+            <div>${i.name}</div>
+            <div>${i.position}</div>
 
             <input type="file" id="staffFile-${i.id}" />
+            <input type="text" id="staffName-${i.id}" value="${i.name}" />
+            <input type="text" id="staffPosition-${i.id}" value="${i.position}" />
 
             <button onclick="updateStaff(${i.id})">Update</button>
             <button onclick="deleteStaff(${i.id})">Delete</button>
         </div>
-    `));
+    `).join("");
 }
 
 async function addStaff() {
-    const file = getFile("staffFile");
+    const file = document.getElementById("staffFile").files[0];
+    const name = document.getElementById("staffName").value;
+    const position = document.getElementById("staffPosition").value;
 
-    await upload("/staff-members", file, {
-        name: getValue("staffName"),
-        position: getValue("staffPosition")
-    });
+    if (!file) return alert("Select image");
 
+    await uploadFile("/staff-members", file, { name, position });
     loadStaff();
 }
 
 async function updateStaff(id) {
-    const file = getFile(`staffFile-${id}`);
+    const file = document.getElementById(`staffFile-${id}`).files[0];
+    const name = document.getElementById(`staffName-${id}`).value;
+    const position = document.getElementById(`staffPosition-${id}`).value;
 
     if (file) {
-        await upload("/staff-members", file, {
-            name: getValue("staffName"),
-            position: getValue("staffPosition")
+        await uploadFile("/staff-members", file, { name, position });
+    } else {
+        await api(`/staff-members/${id}`, {
+            method: "PUT",
+            body: JSON.stringify({ name, position })
         });
     }
 
@@ -244,51 +240,66 @@ async function deleteStaff(id) {
 async function loadBackground() {
     const items = await api("/background-images");
 
-    setHTML("backgroundList", items.map(i => `
-        <img src="${i.url}" width="120"/>
-    `));
+    const list = document.getElementById("backgroundList");
+    if (!list) return;
+
+    list.innerHTML = items.map(i => `
+        <div class="item-card">
+            <img src="${i.url}" width="120"/>
+        </div>
+    `).join("");
 }
 
 async function addBackground() {
-    const file = getFile("bgFile");
+    const file = document.getElementById("bgFile").files[0];
 
-    await upload("/background-images", file);
+    if (!file) return alert("Select image");
 
+    await uploadFile("/background-images", file);
     loadBackground();
 }
 
 /***********************
- * GALLERY
+ * GALLERY (FIXED)
  ***********************/
 async function loadGallery() {
     const items = await api("/gallery-items");
 
-    setHTML("galleryList", items.map(i => `
-        <div>
+    const list = document.getElementById("galleryList");
+    if (!list) return;
+
+    list.innerHTML = items.map(i => `
+        <div class="item-card">
             ${i.type === "image"
                 ? `<img src="${i.url}" width="100"/>`
-                : "🎥 Video"}
-            <p>${i.caption || ""}</p>
+                : "🎥 Video"
+            }
+            <div>${i.caption || ""}</div>
         </div>
-    `));
+    `).join("");
 }
 
 async function addGallery() {
-    const file = getFile("galleryFile");
-    const type = getValue("galleryType");
+    const file = document.getElementById("galleryFile").files[0];
+    const type = document.getElementById("galleryType").value;
+    const caption = document.getElementById("galleryCaption").value;
 
     if (type === "image") {
-        await upload("/gallery-items", file, {
+        if (!file) return alert("Select image");
+
+        await uploadFile("/gallery-items", file, {
             type,
-            caption: getValue("galleryCaption")
+            caption
         });
     } else {
+        const videoUrl = document.getElementById("galleryVideoUrl").value;
+
         await api("/gallery-items", {
             method: "POST",
             body: JSON.stringify({
                 type,
-                videoUrl: getValue("galleryVideoUrl"),
-                caption: getValue("galleryCaption")
+                videoUrl,
+                caption
             })
         });
     }
@@ -297,26 +308,15 @@ async function addGallery() {
 }
 
 /***********************
- * EVENTS
- ***********************/
-async function loadEvents() {
-    const items = await api("/events");
-
-    setHTML("eventsList", items.map(e => `
-        <div>
-            <h4>${e.title}</h4>
-            <small>${new Date(e.eventDate).toLocaleDateString()}</small>
-        </div>
-    `));
-}
-
-/***********************
  * MESSAGES
  ***********************/
 async function loadMessages() {
     const items = await api("/contact-messages");
 
-    setHTML("messagesList", items.map(m => `
+    const list = document.getElementById("messagesList");
+    if (!list) return;
+
+    list.innerHTML = items.map(m => `
         <div class="${m.isRead ? "" : "unread"}">
             <b>${m.name}</b>
             <p>${m.subject}</p>
@@ -325,7 +325,7 @@ async function loadMessages() {
             ${!m.isRead ? `<button onclick="markRead(${m.id})">Mark Read</button>` : ""}
             <button onclick="deleteMessage(${m.id})">Delete</button>
         </div>
-    `));
+    `).join("");
 }
 
 async function markRead(id) {
@@ -339,32 +339,6 @@ async function deleteMessage(id) {
 }
 
 /***********************
- * HELPERS
- ***********************/
-function setText(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-}
-
-function setValue(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.value = value || "";
-}
-
-function getValue(id) {
-    return document.getElementById(id)?.value;
-}
-
-function getFile(id) {
-    return document.getElementById(id)?.files?.[0];
-}
-
-function setHTML(id, html) {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
-}
-
-/***********************
  * INIT
  ***********************/
 document.addEventListener("DOMContentLoaded", () => {
@@ -375,8 +349,7 @@ document.addEventListener("DOMContentLoaded", () => {
             switchSection(e.target.dataset.section)
         ));
 
-    document.getElementById("logoutBtn")
-        ?.addEventListener("click", handleLogout);
+    document.getElementById("logoutBtn")?.addEventListener("click", handleLogout);
 
     loadOverview();
 });
