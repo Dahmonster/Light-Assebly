@@ -101,9 +101,11 @@ async function seedData() {
     
     if (count.cnt === 0) {
         await db.run(`INSERT INTO hero_slides (imageUrl, caption, orderIndex)
-            VALUES (?, ?, ?)`, ['https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070', 'Welcome to Light Evangelist Ministry', 0]);
+            VALUES (?, ?, ?)`, ['https://i.ibb.co/0Rr6XWYv/20260413-170701.jpg', 'Welcome to Light Evangelist Ministry', 0]);
         await db.run(`INSERT INTO hero_slides (imageUrl, caption, orderIndex)
-            VALUES (?, ?, ?)`, ['https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2132', 'Empowering the Next Generation', 1]);
+            VALUES (?, ?, ?)`, ['https://i.ibb.co/S4MrV7Qf/20260413-173719.jpg', 'Dancing in reverence, celebrating the goodness of God', 1]);
+        await db.run(`INSERT INTO hero_slides (imageUrl, caption, orderIndex)
+            VALUES (?, ?, ?)`, ['https://i.ibb.co/tT5MFqDX/20260413-174310.jpg', 'Hearts attentive and spirits nourished by the Word', 2]);
         
         await db.run(`INSERT INTO director_message (title, message, imageUrl)
             VALUES (?, ?, ?)`, ['OUR VISION', 'At Light Assembly International Ministry, we are committed to life transformation and helping you fulfill your God-given destiny. We emphasize holiness and provide guidance for your spiritual, emotional, physical, and financial wellbeing.', 'https://i.ibb.co/yc9sJ8dY/Picture1.jpg']);
