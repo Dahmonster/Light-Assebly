@@ -15,7 +15,7 @@ async function submitContactForm(e) {
     const messageEl = document.getElementById('formMessage');
 
     try {
-        const response = await fetch(`${API_BASE}/api/contact-messages`, {
+        const response = await fetch(`${API_BASE}/contact-messages`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
