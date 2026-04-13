@@ -1,7 +1,7 @@
 const API_BASE = "https://light-assembly.onrender.com/api";
 
 /***********************
- * API HELPER
+ * API HELPER (UNIFIED)
  ***********************/
 async function api(endpoint, options = {}) {
     const res = await fetch(API_BASE + endpoint, {
@@ -23,19 +23,12 @@ async function api(endpoint, options = {}) {
 /***********************
  * CLOUDINARY UPLOAD HELPER
  ***********************/
-async function uploadFile(endpoint, file, extra = {}) {
-    if (!file && endpoint !== "/gallery-items" && extra.type !== "video") {
-        throw new Error("File is required");
-    }
-
+async function upload(endpoint, file, extra = {}) {
     const form = new FormData();
+    form.append("image", file);
 
-    if (file) {
-        form.append("image", file);
-    }
-
-    Object.keys(extra).forEach(key => {
-        form.append(key, extra[key]);
+    Object.entries(extra).forEach(([k, v]) => {
+        form.append(k, v);
     });
 
     const res = await fetch(API_BASE + endpoint, {
@@ -60,7 +53,10 @@ function checkAuth() {
         window.location.href = "login.html";
         return false;
     }
-    document.getElementById("userName").textContent = user;
+
+    const userEl = document.getElementById("userName");
+    if (userEl) userEl.textContent = user;
+
     return true;
 }
 
@@ -70,37 +66,7 @@ function handleLogout() {
 }
 
 /***********************
- * DIRECTOR MESSAGE
- ***********************/
-async function initDirector() {
-    const data = await api("/director-message");
-
-    const titleEl = document.getElementById("directorTitle");
-    const msgEl = document.getElementById("directorMessage");
-    const imgEl = document.getElementById("directorImage");
-
-    if (titleEl) titleEl.value = data?.title || "";
-    if (msgEl) msgEl.value = data?.message || "";
-    if (imgEl) imgEl.value = data?.imageUrl || "";
-
-    document.getElementById("directorForm")?.addEventListener("submit", async e => {
-        e.preventDefault();
-
-        await api("/director-message", {
-            method: "PUT",
-            body: JSON.stringify({
-                title: titleEl.value,
-                message: msgEl.value,
-                imageUrl: imgEl.value
-            })
-        });
-
-        alert("Director message updated");
-    });
-}
-
-/***********************
- * SECTION SWITCHING
+ * SECTION HANDLER
  ***********************/
 let currentSection = "overview";
 
@@ -112,20 +78,23 @@ function switchSection(section) {
     document.querySelector(`[data-section="${section}"]`)?.classList.add("active");
 
     currentSection = section;
-
-    const loaders = {
-        overview: loadOverview,
-        background: loadBackground,
-        hero: loadHero,
-        staff: loadStaff,
-        news: loadNews,
-        events: loadEvents,
-        gallery: loadGallery,
-        messages: loadMessages
-    };
-
     loaders[section]?.();
 }
+
+/***********************
+ * LOADERS MAP (CLEAN)
+ ***********************/
+const loaders = {
+    overview: loadOverview,
+    background: loadBackground,
+    hero: loadHero,
+    staff: loadStaff,
+    news: loadNews,
+    events: loadEvents,
+    gallery: loadGallery,
+    messages: loadMessages,
+    director: loadDirector
+};
 
 /***********************
  * OVERVIEW
@@ -138,47 +107,73 @@ async function loadOverview() {
         api("/contact-messages")
     ]);
 
-    document.getElementById("newsCount").textContent = news?.length || 0;
-    document.getElementById("staffCount").textContent = staff?.length || 0;
-    document.getElementById("eventsCount").textContent = events?.length || 0;
-    document.getElementById("messagesCount").textContent = messages?.length || 0;
+    setText("newsCount", news.length);
+    setText("staffCount", staff.length);
+    setText("eventsCount", events.length);
+    setText("messagesCount", messages.length);
 }
 
 /***********************
- * HERO SLIDES (CLOUDINARY)
+ * DIRECTOR MESSAGE
  ***********************/
-async function addHero() {
-    const file = document.getElementById("heroFile").files[0];
-    const caption = document.getElementById("heroCaption").value;
+async function loadDirector() {
+    const data = await api("/director-message");
 
-    await uploadFile("/hero-slides", file, { caption });
+    setValue("directorTitle", data?.title);
+    setValue("directorMessage", data?.message);
+    setValue("directorImage", data?.imageUrl);
 
-    loadHero();
+    document.getElementById("directorForm")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        await api("/director-message", {
+            method: "PUT",
+            body: JSON.stringify({
+                title: getValue("directorTitle"),
+                message: getValue("directorMessage"),
+                imageUrl: getValue("directorImage")
+            })
+        });
+
+        alert("Updated successfully");
+    });
 }
 
+/***********************
+ * HERO
+ ***********************/
 async function loadHero() {
     const items = await api("/hero-slides");
 
-    document.getElementById("heroList").innerHTML = items.map(i => `
+    setHTML("heroList", items.map(i => `
         <div class="item-card">
-            <img src="${i.imageUrl}" width="100"/>
-            <div>${i.caption || ""}</div>
+            <img src="${i.imageUrl}" width="100" />
+            <p>${i.caption || ""}</p>
 
             <input type="file" id="heroFile-${i.id}" />
-            <input type="text" id="heroCaption-${i.id}" value="${i.caption || ""}" />
+            <input type="text" id="heroCaption-${i.id}" placeholder="caption" />
 
             <button onclick="updateHero(${i.id})">Update</button>
             <button onclick="deleteHero(${i.id})">Delete</button>
         </div>
-    `).join("");
+    `));
+}
+
+async function addHero() {
+    const file = getFile("heroFile");
+    const caption = getValue("heroCaption");
+
+    await upload("/hero-slides", file, { caption });
+
+    loadHero();
 }
 
 async function updateHero(id) {
-    const file = document.getElementById(`heroFile-${id}`).files[0];
-    const caption = document.getElementById(`heroCaption-${id}`).value;
+    const file = getFile(`heroFile-${id}`);
+    const caption = getValue(`heroCaption-${id}`);
 
     if (file) {
-        await uploadFile("/hero-slides", file, { caption });
+        await upload("/hero-slides", file, { caption });
     } else {
         await api(`/hero-slides/${id}`, {
             method: "PUT",
@@ -195,51 +190,43 @@ async function deleteHero(id) {
 }
 
 /***********************
- * STAFF (CLOUDINARY)
+ * STAFF
  ***********************/
 async function loadStaff() {
     const items = await api("/staff-members");
 
-    document.getElementById("staffList").innerHTML = items.map(i => `
+    setHTML("staffList", items.map(i => `
         <div class="item-card">
-            <img src="${i.imageUrl}" width="80"/>
-            <div>${i.name}</div>
-            <div>${i.position}</div>
+            <img src="${i.imageUrl}" width="80" />
+            <p>${i.name}</p>
+            <small>${i.position}</small>
 
             <input type="file" id="staffFile-${i.id}" />
-            <input type="text" id="staffName-${i.id}" value="${i.name}" />
-            <input type="text" id="staffPosition-${i.id}" value="${i.position}" />
 
             <button onclick="updateStaff(${i.id})">Update</button>
             <button onclick="deleteStaff(${i.id})">Delete</button>
         </div>
-    `).join("");
+    `));
 }
 
 async function addStaff() {
-    const file = document.getElementById("staffFile").files[0];
-    const name = document.getElementById("staffName").value;
-    const position = document.getElementById("staffPosition").value;
+    const file = getFile("staffFile");
 
-    await uploadFile("/staff-members", file, {
-        name,
-        position
+    await upload("/staff-members", file, {
+        name: getValue("staffName"),
+        position: getValue("staffPosition")
     });
 
     loadStaff();
 }
 
 async function updateStaff(id) {
-    const file = document.getElementById(`staffFile-${id}`).files[0];
-    const name = document.getElementById(`staffName-${id}`).value;
-    const position = document.getElementById(`staffPosition-${id}`).value;
+    const file = getFile(`staffFile-${id}`);
 
     if (file) {
-        await uploadFile("/staff-members", file, { name, position });
-    } else {
-        await api(`/staff-members/${id}`, {
-            method: "PUT",
-            body: JSON.stringify({ name, position })
+        await upload("/staff-members", file, {
+            name: getValue("staffName"),
+            position: getValue("staffPosition")
         });
     }
 
@@ -257,49 +244,51 @@ async function deleteStaff(id) {
 async function loadBackground() {
     const items = await api("/background-images");
 
-    document.getElementById("backgroundList").innerHTML = items.map(i => `
+    setHTML("backgroundList", items.map(i => `
         <img src="${i.url}" width="120"/>
-    `).join("");
+    `));
 }
 
 async function addBackground() {
-    const file = document.getElementById("bgFile").files[0];
-    await uploadFile("/background-images", file);
+    const file = getFile("bgFile");
+
+    await upload("/background-images", file);
+
     loadBackground();
 }
 
 /***********************
- * GALLERY (CLOUDINARY)
+ * GALLERY
  ***********************/
 async function loadGallery() {
     const items = await api("/gallery-items");
 
-    document.getElementById("galleryList").innerHTML = items.map(i => `
+    setHTML("galleryList", items.map(i => `
         <div>
             ${i.type === "image"
                 ? `<img src="${i.url}" width="100"/>`
                 : "🎥 Video"}
-            <div>${i.caption || ""}</div>
+            <p>${i.caption || ""}</p>
         </div>
-    `).join("");
+    `));
 }
 
 async function addGallery() {
-    const file = document.getElementById("galleryFile").files[0];
-    const type = document.getElementById("galleryType").value;
-    const caption = document.getElementById("galleryCaption").value;
+    const file = getFile("galleryFile");
+    const type = getValue("galleryType");
 
     if (type === "image") {
-        await uploadFile("/gallery-items", file, { type, caption });
+        await upload("/gallery-items", file, {
+            type,
+            caption: getValue("galleryCaption")
+        });
     } else {
-        const videoUrl = document.getElementById("galleryVideoUrl").value;
-
         await api("/gallery-items", {
             method: "POST",
             body: JSON.stringify({
                 type,
-                videoUrl,
-                caption
+                videoUrl: getValue("galleryVideoUrl"),
+                caption: getValue("galleryCaption")
             })
         });
     }
@@ -308,12 +297,26 @@ async function addGallery() {
 }
 
 /***********************
+ * EVENTS
+ ***********************/
+async function loadEvents() {
+    const items = await api("/events");
+
+    setHTML("eventsList", items.map(e => `
+        <div>
+            <h4>${e.title}</h4>
+            <small>${new Date(e.eventDate).toLocaleDateString()}</small>
+        </div>
+    `));
+}
+
+/***********************
  * MESSAGES
  ***********************/
 async function loadMessages() {
     const items = await api("/contact-messages");
 
-    document.getElementById("messagesList").innerHTML = items.map(m => `
+    setHTML("messagesList", items.map(m => `
         <div class="${m.isRead ? "" : "unread"}">
             <b>${m.name}</b>
             <p>${m.subject}</p>
@@ -322,7 +325,7 @@ async function loadMessages() {
             ${!m.isRead ? `<button onclick="markRead(${m.id})">Mark Read</button>` : ""}
             <button onclick="deleteMessage(${m.id})">Delete</button>
         </div>
-    `).join("");
+    `));
 }
 
 async function markRead(id) {
@@ -336,19 +339,44 @@ async function deleteMessage(id) {
 }
 
 /***********************
+ * HELPERS
+ ***********************/
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+function setValue(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = value || "";
+}
+
+function getValue(id) {
+    return document.getElementById(id)?.value;
+}
+
+function getFile(id) {
+    return document.getElementById(id)?.files?.[0];
+}
+
+function setHTML(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+}
+
+/***********************
  * INIT
  ***********************/
 document.addEventListener("DOMContentLoaded", () => {
     if (!checkAuth()) return;
-
-    initDirector();
 
     document.querySelectorAll(".nav-item:not(.logout)")
         .forEach(btn => btn.addEventListener("click", e =>
             switchSection(e.target.dataset.section)
         ));
 
-    document.getElementById("logoutBtn")?.addEventListener("click", handleLogout);
+    document.getElementById("logoutBtn")
+        ?.addEventListener("click", handleLogout);
 
     loadOverview();
 });
