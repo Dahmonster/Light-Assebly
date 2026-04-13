@@ -209,7 +209,9 @@ app.delete('/api/hero-slides/:id', async (req, res) => {
     res.status(204).send();
 });
 
-              app.post("/api/uploads/hero-slides", upload.single("image"), async (req, res) => {
+            const upload = multer({ storage: multer.memoryStorage() });
+
+app.post("/api/uploads/hero-slides", upload.single("image"), async (req, res) => {
     try {
         const { caption, orderIndex } = req.body;
 
@@ -217,26 +219,31 @@ app.delete('/api/hero-slides/:id', async (req, res) => {
             return res.status(400).json({ message: "No file uploaded" });
         }
 
-        // 1. Upload to Cloudinary
-        const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: "light-ministry/hero-slides",
+        // upload buffer directly to Cloudinary
+        const result = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                {
+                    folder: "light-ministry/hero-slides",
+                },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            );
+
+            stream.end(req.file.buffer);
         });
 
-        // 2. Delete temp file
-        fs.unlinkSync(req.file.path);
-
-        // 3. Save into SQLite
         const dbResult = await db.run(
             "INSERT INTO hero_slides (imageUrl, caption, orderIndex) VALUES (?, ?, ?)",
-            [result.secure_url, caption || "", orderIndex || 0]
+            [result.secure_url, caption || "", Number(orderIndex) || 0]
         );
 
-        // 4. Return saved record
         res.status(201).json({
             id: dbResult.lastID,
             imageUrl: result.secure_url,
             caption: caption || "",
-            orderIndex: orderIndex || 0
+            orderIndex: Number(orderIndex) || 0
         });
 
     } catch (err) {
