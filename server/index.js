@@ -131,7 +131,7 @@ app.post("/api/hero-slides", upload.single("image"), async (req, res) => {
 
         const result = await db.run(
             "INSERT INTO hero_slides (imageUrl, caption, orderIndex) VALUES (?, ?, ?)",
-            [imageUrl, caption, Number(orderIndex) || 0]
+            [imageUrl, caption || "", Number(orderIndex) || 0]
         );
 
         res.json({ id: result.lastID, imageUrl });
@@ -145,7 +145,7 @@ app.get("/api/hero-slides", async (req, res) => {
 });
 
 app.delete("/api/hero-slides/:id", async (req, res) => {
-    await db.run("DELETE FROM hero-slides WHERE id=?", [req.params.id]);
+    await db.run("DELETE FROM hero_slides WHERE id=?", [req.params.id]);
     res.json({ success: true });
 });
 
@@ -179,7 +179,7 @@ app.delete("/api/staff-members/:id", async (req, res) => {
 });
 
 // =====================
-// BACKGROUND IMAGES
+// BACKGROUND
 // =====================
 app.post("/api/background-images", upload.single("image"), async (req, res) => {
     try {
@@ -206,23 +206,19 @@ app.delete("/api/background-images/:id", async (req, res) => {
 });
 
 // =====================
-// GALLERY (IMAGE + VIDEO)
+// GALLERY
 // =====================
 app.post("/api/gallery-items", upload.single("image"), async (req, res) => {
     try {
         const { type, caption, videoUrl } = req.body;
 
-        let finalUrl = "";
-
-        if (type === "image") {
-            finalUrl = await safeUpload(req.file, "light-ministry/gallery");
-        } else {
-            finalUrl = videoUrl;
-        }
+        let finalUrl = type === "image"
+            ? await safeUpload(req.file, "light-ministry/gallery")
+            : videoUrl;
 
         const result = await db.run(
             "INSERT INTO gallery_items (type, url, caption) VALUES (?, ?, ?)",
-            [type, finalUrl, caption]
+            [type, finalUrl, caption || ""]
         );
 
         res.json({ id: result.lastID, url: finalUrl });
@@ -241,7 +237,7 @@ app.delete("/api/gallery-items/:id", async (req, res) => {
 });
 
 // =====================
-// EVENTS (FIXED + FULL CRUD READY)
+// EVENTS (FIXED + SAFE SORT)
 // =====================
 app.post("/api/events", upload.single("image"), async (req, res) => {
     try {
@@ -262,7 +258,12 @@ app.post("/api/events", upload.single("image"), async (req, res) => {
 });
 
 app.get("/api/events", async (req, res) => {
-    res.json(await db.all("SELECT * FROM events ORDER BY eventDate"));
+    const events = await db.all("SELECT * FROM events");
+
+    // safer sorting (real date sorting)
+    events.sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
+
+    res.json(events);
 });
 
 app.delete("/api/events/:id", async (req, res) => {
@@ -290,10 +291,7 @@ app.delete("/api/contact-messages/:id", async (req, res) => {
 });
 
 app.patch("/api/contact-messages/:id/read", async (req, res) => {
-    await db.run(
-        "UPDATE contact_messages SET isRead=1 WHERE id=?",
-        [req.params.id]
-    );
+    await db.run("UPDATE contact_messages SET isRead=1 WHERE id=?", [req.params.id]);
     res.json({ success: true });
 });
 
@@ -325,15 +323,12 @@ app.get("/api/director-message", async (req, res) => {
 });
 
 // =====================
-// START SERVER
+// START
 // =====================
 async function start() {
     await initDatabase();
-
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () =>
-        console.log("Server running on port " + PORT)
-    );
+    app.listen(PORT, () => console.log("Server running on " + PORT));
 }
 
 start();
