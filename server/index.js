@@ -8,6 +8,10 @@ import { open } from 'sqlite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+if (!fs.existsSync("uploads")) {
+    fs.mkdirSync("uploads");
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
