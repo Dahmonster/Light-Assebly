@@ -106,7 +106,7 @@ async function seedData() {
             VALUES (?, ?, ?)`, ['https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2132', 'Empowering the Next Generation', 1]);
         
         await db.run(`INSERT INTO director_message (title, message, imageUrl)
-            VALUES (?, ?, ?)`, ['THE DIRECTOR', 'Welcome to our school. We are committed to academic excellence and moral uprightness.', 'https://images.unsplash.com/photo-1544717297-fa95b6ee9643?q=80&w=2069']);
+            VALUES (?, ?, ?)`, ['OUR VISION', 'At Light Assembly International Ministry, we are committed to life transformation and helping you fulfill your God-given destiny. We emphasize holiness and provide guidance for your spiritual, emotional, physical, and financial wellbeing.', 'https://i.ibb.co/yc9sJ8dY/Picture1.jpg']);
         
         await db.run(`INSERT INTO staff_members (name, position, imageUrl, orderIndex)
             VALUES (?, ?, ?, ?)`, ['John Doe', 'Principal', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1974', 0]);
