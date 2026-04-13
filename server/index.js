@@ -17,26 +17,32 @@ const app = express();
 let db;
 
 /* =========================
-   CLOUDINARY + MULTER SETUP
+   CLOUDINARY HELPER
 ========================= */
-const upload = multer({ storage: multer.memoryStorage() });
-
-// Reusable Cloudinary uploader
-const uploadToCloudinary = (buffer, folder) => {
+function uploadToCloudinary(buffer, folder) {
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
             { folder },
             (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
+                if (error) return reject(error);
+                resolve(result);
             }
         );
+
         stream.end(buffer);
     });
-};
+}
 
 /* =========================
-   DATABASE INIT
+   MULTER (SINGLE INSTANCE)
+========================= */
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+/* =========================
+   DB INIT
 ========================= */
 async function initDatabase() {
     db = await open({
@@ -60,7 +66,7 @@ async function initDatabase() {
 
         CREATE TABLE IF NOT EXISTS director_message (
             id INTEGER PRIMARY KEY,
-            title TEXT NOT NULL DEFAULT 'THE DIRECTOR',
+            title TEXT NOT NULL,
             message TEXT NOT NULL,
             imageUrl TEXT NOT NULL
         );
@@ -126,8 +132,13 @@ async function seedData() {
     const count = await db.get('SELECT COUNT(*) as cnt FROM hero_slides');
 
     if (count.cnt === 0) {
-        await db.run(`INSERT INTO hero_slides (imageUrl, caption, orderIndex) VALUES (?, ?, ?)`,
-            ['https://i.ibb.co/0Rr6XWYv/20260413-170701.jpg', 'Welcome', 0]);
+        await db.run(`INSERT INTO hero_slides (imageUrl, caption, orderIndex)
+        VALUES (?, ?, ?)`,
+        ["https://i.ibb.co/sample1.jpg", "Welcome", 0]);
+
+        await db.run(`INSERT INTO hero_slides (imageUrl, caption, orderIndex)
+        VALUES (?, ?, ?)`,
+        ["https://i.ibb.co/sample2.jpg", "Worship", 1]);
     }
 }
 
@@ -141,17 +152,31 @@ app.use(express.static(path.join(__dirname, "../public")));
 /* =========================
    BASIC ROUTES
 ========================= */
-app.get("/", (req, res) => res.send("Server running"));
-
-/* =========================
-   HERO SLIDES (CLOUDINARY ENABLED)
-========================= */
-app.get("/api/hero-slides", async (req, res) => {
-    const items = await db.all("SELECT * FROM hero_slides ORDER BY orderIndex");
-    res.json(items);
+app.get("/", (req, res) => {
+    res.send("Server running");
 });
 
-// CREATE (URL version)
+/* =========================
+   AUTH (SIMPLE)
+========================= */
+app.post("/api/auth/login", (req, res) => {
+    const { username, password } = req.body;
+
+    if (username === "admin" && password === "lightAdmin") {
+        res.json({ message: "Logged in" });
+    } else {
+        res.status(401).json({ message: "Invalid credentials" });
+    }
+});
+
+/* =========================
+   HERO SLIDES
+========================= */
+app.get("/api/hero-slides", async (req, res) => {
+    const data = await db.all("SELECT * FROM hero_slides ORDER BY orderIndex");
+    res.json(data);
+});
+
 app.post("/api/hero-slides", async (req, res) => {
     const { imageUrl, caption, orderIndex } = req.body;
 
@@ -160,105 +185,135 @@ app.post("/api/hero-slides", async (req, res) => {
         [imageUrl, caption, orderIndex || 0]
     );
 
-    res.status(201).json({ id: result.lastID, imageUrl, caption, orderIndex });
+    res.json({ id: result.lastID });
 });
 
-// CREATE (UPLOAD version - CLOUDINARY)
-app.post("/api/hero-slides/upload", upload.single("image"), async (req, res) => {
+/* =========================
+   CLOUDINARY UPLOAD - HERO
+========================= */
+app.post("/api/uploads/hero-slides", upload.single("image"), async (req, res) => {
     try {
         const { caption, orderIndex } = req.body;
 
-        const result = await uploadToCloudinary(req.file.buffer, "hero-slides");
+        const result = await uploadToCloudinary(req.file.buffer, "light-ministry/hero");
 
         const dbResult = await db.run(
             "INSERT INTO hero_slides (imageUrl, caption, orderIndex) VALUES (?, ?, ?)",
             [result.secure_url, caption || "", Number(orderIndex) || 0]
         );
 
-        res.status(201).json({
+        res.json({
             id: dbResult.lastID,
-            imageUrl: result.secure_url,
-            caption,
-            orderIndex
+            imageUrl: result.secure_url
         });
+
     } catch (err) {
-        res.status(500).json({ error: "Upload failed" });
+        res.status(500).json({ message: "Upload failed" });
     }
 });
 
 /* =========================
-   STAFF (NOW CLOUDINARY ENABLED)
+   CLOUDINARY UPLOAD - BACKGROUND
 ========================= */
-app.post("/api/staff-members/upload", upload.single("image"), async (req, res) => {
+app.post("/api/uploads/background", upload.single("image"), async (req, res) => {
+    try {
+        const result = await uploadToCloudinary(req.file.buffer, "light-ministry/background");
+
+        const dbResult = await db.run(
+            "INSERT INTO background_images (url) VALUES (?)",
+            [result.secure_url]
+        );
+
+        res.json({ id: dbResult.lastID, url: result.secure_url });
+
+    } catch (err) {
+        res.status(500).json({ message: "Upload failed" });
+    }
+});
+
+/* =========================
+   CLOUDINARY UPLOAD - STAFF
+========================= */
+app.post("/api/uploads/staff", upload.single("image"), async (req, res) => {
     try {
         const { name, position, orderIndex } = req.body;
 
-        const result = await uploadToCloudinary(req.file.buffer, "staff");
+        const result = await uploadToCloudinary(req.file.buffer, "light-ministry/staff");
 
         const dbResult = await db.run(
             "INSERT INTO staff_members (name, position, imageUrl, orderIndex) VALUES (?, ?, ?, ?)",
-            [name, position, result.secure_url, orderIndex || 0]
+            [name, position, result.secure_url, Number(orderIndex) || 0]
         );
 
-        res.status(201).json({
-            id: dbResult.lastID,
-            name,
-            position,
-            imageUrl: result.secure_url
-        });
+        res.json({ id: dbResult.lastID });
+
     } catch (err) {
-        res.status(500).json({ error: "Upload failed" });
+        res.status(500).json({ message: "Upload failed" });
     }
 });
 
 /* =========================
-   BACKGROUND IMAGES (CLOUDINARY)
+   CLOUDINARY UPLOAD - DIRECTOR
 ========================= */
-app.post("/api/background-images/upload", upload.single("image"), async (req, res) => {
+app.post("/api/uploads/director", upload.single("image"), async (req, res) => {
     try {
-        const result = await uploadToCloudinary(req.file.buffer, "backgrounds");
+        const { title, message } = req.body;
 
-        const dbResult = await db.run(
-            "INSERT INTO background_images (url, orderIndex) VALUES (?, ?)",
-            [result.secure_url, 0]
-        );
+        const result = await uploadToCloudinary(req.file.buffer, "light-ministry/director");
 
-        res.status(201).json({
-            id: dbResult.lastID,
-            url: result.secure_url
-        });
+        const existing = await db.get("SELECT id FROM director_message LIMIT 1");
+
+        if (existing) {
+            await db.run(
+                "UPDATE director_message SET title=?, message=?, imageUrl=? WHERE id=?",
+                [title, message, result.secure_url, existing.id]
+            );
+        } else {
+            await db.run(
+                "INSERT INTO director_message (title, message, imageUrl) VALUES (?, ?, ?)",
+                [title, message, result.secure_url]
+            );
+        }
+
+        res.json({ imageUrl: result.secure_url });
+
     } catch (err) {
-        res.status(500).json({ error: "Upload failed" });
+        res.status(500).json({ message: "Upload failed" });
     }
 });
 
 /* =========================
-   GALLERY (CLOUDINARY)
+   CLOUDINARY UPLOAD - NEWS
 ========================= */
-app.post("/api/gallery/upload", upload.single("image"), async (req, res) => {
+app.post("/api/uploads/news", upload.single("image"), async (req, res) => {
+    try {
+        const result = await uploadToCloudinary(req.file.buffer, "light-ministry/news");
+        res.json({ imageUrl: result.secure_url });
+    } catch (err) {
+        res.status(500).json({ message: "Upload failed" });
+    }
+});
+
+/* =========================
+   CLOUDINARY UPLOAD - GALLERY
+========================= */
+app.post("/api/uploads/gallery", upload.single("file"), async (req, res) => {
     try {
         const { type, caption } = req.body;
 
-        const result = await uploadToCloudinary(req.file.buffer, "gallery");
+        const result = await uploadToCloudinary(req.file.buffer, "light-ministry/gallery");
 
         const dbResult = await db.run(
             "INSERT INTO gallery_items (type, url, caption) VALUES (?, ?, ?)",
-            [type || "image", result.secure_url, caption || ""]
+            [type, result.secure_url, caption || ""]
         );
 
-        res.status(201).json({
-            id: dbResult.lastID,
-            url: result.secure_url
-        });
+        res.json({ id: dbResult.lastID });
+
     } catch (err) {
-        res.status(500).json({ error: "Upload failed" });
+        res.status(500).json({ message: "Upload failed" });
     }
 });
-
-/* =========================
-   KEEP YOUR OLD ROUTES (UNCHANGED)
-========================= */
-// (You can keep news, events, messages, settings exactly as they are)
 
 /* =========================
    START SERVER
@@ -267,6 +322,7 @@ async function startServer() {
     const dbExists = fs.existsSync(dbPath);
 
     await initDatabase();
+
     if (!dbExists) await seedData();
 
     const PORT = process.env.PORT || 5000;
