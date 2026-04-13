@@ -1,3 +1,5 @@
+import multer from "multer";
+import cloudinary from "./cloudinary.js";
 import fs from 'fs';
 import express from 'express';
 import cors from 'cors';
@@ -136,6 +138,8 @@ app.get('/', (req, res) => {
 app.get('/home', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
+
+const upload = multer({ dest: "uploads/" });
 
 // Routes
 app.post('/api/auth/login', (req, res) => {
@@ -359,8 +363,28 @@ app.put('/api/site-settings/:key', async (req, res) => {
 });
 
 // Upload placeholder
-app.post('/api/uploads', (req, res) => {
-    res.status(201).json({ url: 'https://placehold.co/600x400?text=Uploaded+Image' });
+
+app.post("/api/uploads", upload.single("image"), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            folder: "light-ministry",
+        });
+
+        // remove temp file
+        fs.unlinkSync(req.file.path);
+
+        res.status(201).json({
+            url: result.secure_url,
+        });
+
+    } catch (err) {
+        console.error("Upload error:", err);
+        res.status(500).json({ message: "Upload failed" });
+    }
 });
 
 // Start server
