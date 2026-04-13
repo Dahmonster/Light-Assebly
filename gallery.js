@@ -1,5 +1,3 @@
-// Gallery Page Functionality
-
 let galleryItems = [];
 let currentLightboxIndex = 0;
 
@@ -9,8 +7,13 @@ async function loadGallery() {
     setupLightbox();
 }
 
+/***********************
+ * RENDER GALLERY
+ ***********************/
 function renderGallery() {
     const grid = document.getElementById('galleryGrid');
+
+    if (!grid) return;
 
     if (galleryItems.length === 0) {
         grid.innerHTML = '<p>No gallery items available</p>';
@@ -19,101 +22,150 @@ function renderGallery() {
 
     grid.innerHTML = galleryItems.map((item, index) => {
         const isVideo = item.type === 'video';
+
         return `
             <div class="gallery-item" data-index="${index}">
-                ${isVideo ? 
-    (item.url.includes("youtube.com") || item.url.includes("youtu.be") 
-        ? `<iframe 
-                class="gallery-item-video"
-                src="${item.url.replace("watch?v=", "embed/")}" 
-                frameborder="0"
-                allowfullscreen>
-           </iframe>`
-        : `<video class="gallery-item-video" controls>
-                <source src="${item.url}" type="video/mp4">
-           </video>`
-    )
-    :
-    `<img src="${item.url}" alt="${item.caption || 'Gallery item'}" class="gallery-item-image">`
-}
+                ${isVideo ? `
+                    <div class="video-thumb">🎥 Video</div>
+                ` : `
+                    <img src="${item.url}" alt="${item.caption || 'Gallery item'}" class="gallery-item-image">
+                `}
             </div>
         `;
     }).join('');
 
-    // Add click handlers
     document.querySelectorAll('.gallery-item').forEach(item => {
         item.addEventListener('click', () => {
-            currentLightboxIndex = parseInt(item.getAttribute('data-index'));
+            currentLightboxIndex = Number(item.dataset.index);
             openLightbox();
         });
     });
 }
 
+/***********************
+ * LIGHTBOX SETUP
+ ***********************/
 function setupLightbox() {
     const lightbox = document.getElementById('lightbox');
     const closeBtn = document.getElementById('lightboxClose');
     const prevBtn = document.getElementById('lightboxPrev');
     const nextBtn = document.getElementById('lightboxNext');
 
-    closeBtn.addEventListener('click', closeLightbox);
-    prevBtn.addEventListener('click', prevLightbox);
-    nextBtn.addEventListener('click', nextLightbox);
+    closeBtn?.addEventListener('click', closeLightbox);
+    prevBtn?.addEventListener('click', prevLightbox);
+    nextBtn?.addEventListener('click', nextLightbox);
 
-    lightbox.addEventListener('click', (e) => {
-        if (e.target === lightbox) {
-            closeLightbox();
-        }
+    lightbox?.addEventListener('click', (e) => {
+        if (e.target === lightbox) closeLightbox();
     });
 
-    // Keyboard navigation
     document.addEventListener('keydown', (e) => {
-        if (lightbox.classList.contains('active')) {
-            if (e.key === 'ArrowLeft') prevLightbox();
-            if (e.key === 'ArrowRight') nextLightbox();
-            if (e.key === 'Escape') closeLightbox();
-        }
+        if (!lightbox.classList.contains('active')) return;
+
+        if (e.key === 'ArrowLeft') prevLightbox();
+        if (e.key === 'ArrowRight') nextLightbox();
+        if (e.key === 'Escape') closeLightbox();
     });
 }
 
+/***********************
+ * OPEN LIGHTBOX (FIXED)
+ ***********************/
 function openLightbox() {
     const item = galleryItems[currentLightboxIndex];
-    const image = document.getElementById('lightboxImage');
-    const caption = document.getElementById('lightboxCaption');
     const lightbox = document.getElementById('lightbox');
+    const container = document.getElementById('lightboxMedia');
+    const caption = document.getElementById('lightboxCaption');
+
+    if (!item || !container) return;
+
+    // CLEAR previous media (VERY IMPORTANT FIX)
+    container.innerHTML = '';
+
+    let mediaEl;
 
     if (item.type === 'video') {
-        image.style.display = 'none';
-        // Create video element
-        const video = document.createElement('video');
-        video.src = item.url;
-        video.controls = true;
-        video.style.maxWidth = '100%';
-        video.style.maxHeight = '80vh';
-        image.parentNode.replaceChild(video, image);
+
+        // YouTube handling
+        if (item.url.includes("youtube.com") || item.url.includes("youtu.be")) {
+            const embedUrl = convertYouTube(item.url);
+
+            mediaEl = document.createElement('iframe');
+            mediaEl.src = embedUrl;
+            mediaEl.frameBorder = "0";
+            mediaEl.allowFullscreen = true;
+            mediaEl.style.width = "100%";
+            mediaEl.style.height = "80vh";
+
+        } else {
+            mediaEl = document.createElement('video');
+            mediaEl.src = item.url;
+            mediaEl.controls = true;
+            mediaEl.style.maxWidth = "100%";
+            mediaEl.style.maxHeight = "80vh";
+        }
+
     } else {
-        image.src = item.url;
-        image.style.display = 'block';
+        mediaEl = document.createElement('img');
+        mediaEl.src = item.url;
+        mediaEl.style.maxWidth = "100%";
+        mediaEl.style.maxHeight = "80vh";
     }
 
+    container.appendChild(mediaEl);
     caption.textContent = item.caption || '';
+
     lightbox.classList.add('active');
 }
 
+/***********************
+ * CLOSE LIGHTBOX (FIXED)
+ ***********************/
 function closeLightbox() {
-    document.getElementById('lightbox').classList.remove('active');
+    const lightbox = document.getElementById('lightbox');
+    const container = document.getElementById('lightboxMedia');
+
+    lightbox.classList.remove('active');
+
+    // STOP video/audio properly
+    if (container) container.innerHTML = '';
 }
 
+/***********************
+ * NAVIGATION
+ ***********************/
 function prevLightbox() {
-    currentLightboxIndex = (currentLightboxIndex - 1 + galleryItems.length) % galleryItems.length;
+    currentLightboxIndex =
+        (currentLightboxIndex - 1 + galleryItems.length) % galleryItems.length;
+
     openLightbox();
 }
 
 function nextLightbox() {
-    currentLightboxIndex = (currentLightboxIndex + 1) % galleryItems.length;
+    currentLightboxIndex =
+        (currentLightboxIndex + 1) % galleryItems.length;
+
     openLightbox();
 }
 
-// Initialize Gallery Page
-document.addEventListener('DOMContentLoaded', () => {
-    loadGallery();
-});
+/***********************
+ * YOUTUBE FIX (ROBUST)
+ ***********************/
+function convertYouTube(url) {
+    let videoId = "";
+
+    if (url.includes("youtu.be/")) {
+        videoId = url.split("youtu.be/")[1].split("?")[0];
+    }
+
+    if (url.includes("watch?v=")) {
+        videoId = url.split("watch?v=")[1].split("&")[0];
+    }
+
+    return `https://www.youtube.com/embed/${videoId}`;
+}
+
+/***********************
+ * INIT
+ ***********************/
+document.addEventListener('DOMContentLoaded', loadGallery);
