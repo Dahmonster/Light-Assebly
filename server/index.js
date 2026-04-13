@@ -16,7 +16,7 @@ let db;
 // Initialize Database
 async function initDatabase() {
     db = await open({
-        filename: path.join(__dirname, '../data/lightMinistry.db'),
+        filename: dbPath,
         driver: sqlite3.Database
     });
 
@@ -364,7 +364,7 @@ app.post('/api/uploads', (req, res) => {
 
 // Start server
 async function startServer() {
-    const dbPath = path.join(__dirname, 'data', 'lightMinistry.db');
+    const dbPath = path.join(__dirname, '.../data/lightMinistry.db');
 
     // Only seed if DB file doesn't exist yet
     const dbExists = fs.existsSync(dbPath);
