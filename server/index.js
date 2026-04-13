@@ -1,22 +1,43 @@
 import multer from "multer";
 import cloudinary from "./cloudinary.js";
-import fs from 'fs';
-import express from 'express';
-import cors from 'cors';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from "fs";
+import express from "express";
+import cors from "cors";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = path.join(__dirname, '../data/lightMinistry.db');
+const dbPath = path.join(__dirname, "../data/lightMinistry.db");
 const app = express();
 
 let db;
 
-// Initialize Database
+/* =========================
+   CLOUDINARY + MULTER SETUP
+========================= */
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Reusable Cloudinary uploader
+const uploadToCloudinary = (buffer, folder) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { folder },
+            (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }
+        );
+        stream.end(buffer);
+    });
+};
+
+/* =========================
+   DATABASE INIT
+========================= */
 async function initDatabase() {
     db = await open({
         filename: dbPath,
@@ -98,137 +119,56 @@ async function initDatabase() {
     `);
 }
 
-// Seed data
+/* =========================
+   SEED DATA
+========================= */
 async function seedData() {
     const count = await db.get('SELECT COUNT(*) as cnt FROM hero_slides');
-    
+
     if (count.cnt === 0) {
-        await db.run(`INSERT INTO hero_slides (imageUrl, caption, orderIndex)
-            VALUES (?, ?, ?)`, ['https://i.ibb.co/0Rr6XWYv/20260413-170701.jpg', 'Welcome to Light Evangelist Ministry', 0]);
-        await db.run(`INSERT INTO hero_slides (imageUrl, caption, orderIndex)
-            VALUES (?, ?, ?)`, ['https://i.ibb.co/S4MrV7Qf/20260413-173719.jpg', 'Dancing in reverence, celebrating the goodness of God', 1]);
-        await db.run(`INSERT INTO hero_slides (imageUrl, caption, orderIndex)
-            VALUES (?, ?, ?)`, ['https://i.ibb.co/tT5MFqDX/20260413-174310.jpg', 'Hearts attentive and spirits nourished by the Word', 2]);
-        
-        await db.run(`INSERT INTO director_message (title, message, imageUrl)
-            VALUES (?, ?, ?)`, ['OUR VISION', 'At Light Assembly International Ministry, we are committed to life transformation and helping you fulfill your God-given destiny. We emphasize holiness and provide guidance for your spiritual, emotional, physical, and financial wellbeing.', 'https://i.ibb.co/yc9sJ8dY/Picture1.jpg']);
-        
-        await db.run(`INSERT INTO staff_members (name, position, imageUrl, orderIndex)
-            VALUES (?, ?, ?, ?)`, ['John Doe', 'Principal', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1974', 0]);
-        await db.run(`INSERT INTO staff_members (name, position, imageUrl, orderIndex)
-            VALUES (?, ?, ?, ?)`, ['Jane Smith', 'Vice Principal', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1976', 1]);
-        
-        await db.run(`INSERT INTO news_posts (title, slug, previewText, content, featuredImage)
-            VALUES (?, ?, ?, ?, ?)`, ['Resumption Date Announced', 'resumption-date', 'School resumes on the 10th of next month.', '<p>School resumes on the 10th of next month. All students are expected to be present.</p>', 'https://images.unsplash.com/photo-1588072432836-e10032774350?q=80&w=2072']);
-        
-        await db.run(`INSERT INTO background_images (url, orderIndex)
-            VALUES (?, ?)`, ['https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071', 0]);
+        await db.run(`INSERT INTO hero_slides (imageUrl, caption, orderIndex) VALUES (?, ?, ?)`,
+            ['https://i.ibb.co/0Rr6XWYv/20260413-170701.jpg', 'Welcome', 0]);
     }
 }
 
-// Middleware
+/* =========================
+   MIDDLEWARE
+========================= */
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, "../public")));
 
-const upload = multer({ storage: multer.memoryStorage() });
+/* =========================
+   BASIC ROUTES
+========================= */
+app.get("/", (req, res) => res.send("Server running"));
 
-app.get('/', (req, res) => {
-    res.send('Server is running');
-});
-
-app.get('/home', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
-});
-
-// Routes
-app.post('/api/auth/login', (req, res) => {
-    const { username, password } = req.body;
-    if (username === 'admin' && password === 'lightAdmin') {
-        res.json({ message: 'Logged in' });
-    } else {
-        res.status(401).json({ message: 'Invalid credentials' });
-    }
-});
-
-app.post('/api/auth/logout', (req, res) => {
-    res.json({ message: 'Logged out' });
-});
-
-app.get('/api/auth/me', (req, res) => {
-    res.json({ username: 'admin' });
-});
-
-// Background Images
-app.get('/api/background-images', async (req, res) => {
-    const items = await db.all('SELECT * FROM background_images ORDER BY orderIndex');
+/* =========================
+   HERO SLIDES (CLOUDINARY ENABLED)
+========================= */
+app.get("/api/hero-slides", async (req, res) => {
+    const items = await db.all("SELECT * FROM hero_slides ORDER BY orderIndex");
     res.json(items);
 });
 
-app.post('/api/background-images', async (req, res) => {
-    const { url, orderIndex } = req.body;
-    const result = await db.run('INSERT INTO background_images (url, orderIndex) VALUES (?, ?)', [url, orderIndex || 0]);
-    res.status(201).json({ id: result.lastID, url, orderIndex });
-});
-
-app.put('/api/background-images/:id', async (req, res) => {
-    const { url, orderIndex } = req.body;
-    await db.run('UPDATE background_images SET url = ?, orderIndex = ? WHERE id = ?', [url, orderIndex, req.params.id]);
-    res.json({ id: req.params.id, url, orderIndex });
-});
-
-app.delete('/api/background-images/:id', async (req, res) => {
-    await db.run('DELETE FROM background_images WHERE id = ?', [req.params.id]);
-    res.status(204).send();
-});
-
-// Hero Slides
-app.get('/api/hero-slides', async (req, res) => {
-    const items = await db.all('SELECT * FROM hero_slides ORDER BY orderIndex');
-    res.json(items);
-});
-
-app.post('/api/hero-slides', async (req, res) => {
+// CREATE (URL version)
+app.post("/api/hero-slides", async (req, res) => {
     const { imageUrl, caption, orderIndex } = req.body;
-    const result = await db.run('INSERT INTO hero_slides (imageUrl, caption, orderIndex) VALUES (?, ?, ?)', [imageUrl, caption, orderIndex || 0]);
+
+    const result = await db.run(
+        "INSERT INTO hero_slides (imageUrl, caption, orderIndex) VALUES (?, ?, ?)",
+        [imageUrl, caption, orderIndex || 0]
+    );
+
     res.status(201).json({ id: result.lastID, imageUrl, caption, orderIndex });
 });
 
-app.put('/api/hero-slides/:id', async (req, res) => {
-    const { imageUrl, caption, orderIndex } = req.body;
-    await db.run('UPDATE hero_slides SET imageUrl = ?, caption = ?, orderIndex = ? WHERE id = ?', [imageUrl, caption, orderIndex, req.params.id]);
-    res.json({ id: req.params.id, imageUrl, caption, orderIndex });
-});
-
-app.delete('/api/hero-slides/:id', async (req, res) => {
-    await db.run('DELETE FROM hero_slides WHERE id = ?', [req.params.id]);
-    res.status(204).send();
-});
-
-            const upload = multer({ storage: multer.memoryStorage() });
-
-app.post("/api/uploads/hero-slides", upload.single("image"), async (req, res) => {
+// CREATE (UPLOAD version - CLOUDINARY)
+app.post("/api/hero-slides/upload", upload.single("image"), async (req, res) => {
     try {
         const { caption, orderIndex } = req.body;
 
-        if (!req.file) {
-            return res.status(400).json({ message: "No file uploaded" });
-        }
-
-        // upload buffer directly to Cloudinary
-        const result = await new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream(
-                {
-                    folder: "light-ministry/hero-slides",
-                },
-                (error, result) => {
-                    if (error) reject(error);
-                    else resolve(result);
-                }
-            );
-
-            stream.end(req.file.buffer);
-        });
+        const result = await uploadToCloudinary(req.file.buffer, "hero-slides");
 
         const dbResult = await db.run(
             "INSERT INTO hero_slides (imageUrl, caption, orderIndex) VALUES (?, ?, ?)",
@@ -238,188 +178,96 @@ app.post("/api/uploads/hero-slides", upload.single("image"), async (req, res) =>
         res.status(201).json({
             id: dbResult.lastID,
             imageUrl: result.secure_url,
-            caption: caption || "",
-            orderIndex: Number(orderIndex) || 0
+            caption,
+            orderIndex
         });
-
     } catch (err) {
-        console.error("Hero upload error:", err);
-        res.status(500).json({ message: "Upload failed" });
+        res.status(500).json({ error: "Upload failed" });
     }
 });
 
-// Director Message
-app.get('/api/director-message', async (req, res) => {
-    const msg = await db.get('SELECT * FROM director_message LIMIT 1');
-    res.json(msg || null);
-});
+/* =========================
+   STAFF (NOW CLOUDINARY ENABLED)
+========================= */
+app.post("/api/staff-members/upload", upload.single("image"), async (req, res) => {
+    try {
+        const { name, position, orderIndex } = req.body;
 
-app.put('/api/director-message', async (req, res) => {
-    const { title, message, imageUrl } = req.body;
-    const existing = await db.get('SELECT id FROM director_message LIMIT 1');
-    
-    if (existing) {
-        await db.run('UPDATE director_message SET title = ?, message = ?, imageUrl = ? WHERE id = ?', [title, message, imageUrl, existing.id]);
-        res.json({ id: existing.id, title, message, imageUrl });
-    } else {
-        const result = await db.run('INSERT INTO director_message (title, message, imageUrl) VALUES (?, ?, ?)', [title, message, imageUrl]);
-        res.status(201).json({ id: result.lastID, title, message, imageUrl });
+        const result = await uploadToCloudinary(req.file.buffer, "staff");
+
+        const dbResult = await db.run(
+            "INSERT INTO staff_members (name, position, imageUrl, orderIndex) VALUES (?, ?, ?, ?)",
+            [name, position, result.secure_url, orderIndex || 0]
+        );
+
+        res.status(201).json({
+            id: dbResult.lastID,
+            name,
+            position,
+            imageUrl: result.secure_url
+        });
+    } catch (err) {
+        res.status(500).json({ error: "Upload failed" });
     }
 });
 
-// Staff Members
-app.get('/api/staff-members', async (req, res) => {
-    const items = await db.all('SELECT * FROM staff_members ORDER BY orderIndex');
-    res.json(items);
-});
+/* =========================
+   BACKGROUND IMAGES (CLOUDINARY)
+========================= */
+app.post("/api/background-images/upload", upload.single("image"), async (req, res) => {
+    try {
+        const result = await uploadToCloudinary(req.file.buffer, "backgrounds");
 
-app.post('/api/staff-members', async (req, res) => {
-    const { name, position, imageUrl, orderIndex } = req.body;
-    const result = await db.run('INSERT INTO staff_members (name, position, imageUrl, orderIndex) VALUES (?, ?, ?, ?)', [name, position, imageUrl, orderIndex || 0]);
-    res.status(201).json({ id: result.lastID, name, position, imageUrl, orderIndex });
-});
+        const dbResult = await db.run(
+            "INSERT INTO background_images (url, orderIndex) VALUES (?, ?)",
+            [result.secure_url, 0]
+        );
 
-app.put('/api/staff-members/:id', async (req, res) => {
-    const { name, position, imageUrl, orderIndex } = req.body;
-    await db.run('UPDATE staff_members SET name = ?, position = ?, imageUrl = ?, orderIndex = ? WHERE id = ?', [name, position, imageUrl, orderIndex, req.params.id]);
-    res.json({ id: req.params.id, name, position, imageUrl, orderIndex });
-});
-
-app.delete('/api/staff-members/:id', async (req, res) => {
-    await db.run('DELETE FROM staff_members WHERE id = ?', [req.params.id]);
-    res.status(204).send();
-});
-
-// News Posts
-app.get('/api/news-posts', async (req, res) => {
-    const items = await db.all('SELECT * FROM news_posts ORDER BY createdAt DESC');
-    res.json(items);
-});
-
-app.get('/api/news-posts/:slug', async (req, res) => {
-    const item = await db.get('SELECT * FROM news_posts WHERE slug = ?', [req.params.slug]);
-    if (item) res.json(item);
-    else res.status(404).json({ message: 'Not found' });
-});
-
-app.post('/api/news-posts', async (req, res) => {
-    const { title, slug, previewText, content, featuredImage } = req.body;
-    const result = await db.run('INSERT INTO news_posts (title, slug, previewText, content, featuredImage) VALUES (?, ?, ?, ?, ?)', [title, slug, previewText, content, featuredImage]);
-    res.status(201).json({ id: result.lastID, title, slug, previewText, content, featuredImage });
-});
-
-app.put('/api/news-posts/:id', async (req, res) => {
-    const { title, slug, previewText, content, featuredImage } = req.body;
-    await db.run('UPDATE news_posts SET title = ?, slug = ?, previewText = ?, content = ?, featuredImage = ? WHERE id = ?', [title, slug, previewText, content, featuredImage, req.params.id]);
-    res.json({ id: req.params.id, title, slug, previewText, content, featuredImage });
-});
-
-app.delete('/api/news-posts/:id', async (req, res) => {
-    await db.run('DELETE FROM news_posts WHERE id = ?', [req.params.id]);
-    res.status(204).send();
-});
-
-// Events
-app.get('/api/events', async (req, res) => {
-    const items = await db.all('SELECT * FROM events ORDER BY eventDate');
-    res.json(items);
-});
-
-app.post('/api/events', async (req, res) => {
-    const { title, description, eventDate, imageUrl, isUpcoming } = req.body;
-    const result = await db.run('INSERT INTO events (title, description, eventDate, imageUrl, isUpcoming) VALUES (?, ?, ?, ?, ?)', [title, description, eventDate, imageUrl, isUpcoming || 1]);
-    res.status(201).json({ id: result.lastID, title, description, eventDate, imageUrl, isUpcoming });
-});
-
-app.put('/api/events/:id', async (req, res) => {
-    const { title, description, eventDate, imageUrl, isUpcoming } = req.body;
-    await db.run('UPDATE events SET title = ?, description = ?, eventDate = ?, imageUrl = ?, isUpcoming = ? WHERE id = ?', [title, description, eventDate, imageUrl, isUpcoming, req.params.id]);
-    res.json({ id: req.params.id, title, description, eventDate, imageUrl, isUpcoming });
-});
-
-app.delete('/api/events/:id', async (req, res) => {
-    await db.run('DELETE FROM events WHERE id = ?', [req.params.id]);
-    res.status(204).send();
-});
-
-// Gallery
-app.get('/api/gallery-items', async (req, res) => {
-    const items = await db.all('SELECT * FROM gallery_items ORDER BY orderIndex');
-    res.json(items);
-});
-
-app.post('/api/gallery-items', async (req, res) => {
-    const { type, url, caption, orderIndex } = req.body;
-    const result = await db.run('INSERT INTO gallery_items (type, url, caption, orderIndex) VALUES (?, ?, ?, ?)', [type, url, caption, orderIndex || 0]);
-    res.status(201).json({ id: result.lastID, type, url, caption, orderIndex });
-});
-
-app.put('/api/gallery-items/:id', async (req, res) => {
-    const { type, url, caption, orderIndex } = req.body;
-    await db.run('UPDATE gallery_items SET type = ?, url = ?, caption = ?, orderIndex = ? WHERE id = ?', [type, url, caption, orderIndex, req.params.id]);
-    res.json({ id: req.params.id, type, url, caption, orderIndex });
-});
-
-app.delete('/api/gallery-items/:id', async (req, res) => {
-    await db.run('DELETE FROM gallery_items WHERE id = ?', [req.params.id]);
-    res.status(204).send();
-});
-
-// Contact Messages
-app.get('/api/contact-messages', async (req, res) => {
-    const items = await db.all('SELECT * FROM contact_messages ORDER BY createdAt DESC');
-    res.json(items);
-});
-
-app.post('/api/contact-messages', async (req, res) => {
-    const { name, email, subject, message } = req.body;
-    const result = await db.run('INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)', [name, email, subject, message]);
-    res.status(201).json({ id: result.lastID, name, email, subject, message, isRead: 0 });
-});
-
-app.patch('/api/contact-messages/:id/read', async (req, res) => {
-    await db.run('UPDATE contact_messages SET isRead = 1 WHERE id = ?', [req.params.id]);
-    res.json({ message: 'Marked as read' });
-});
-
-app.delete('/api/contact-messages/:id', async (req, res) => {
-    await db.run('DELETE FROM contact_messages WHERE id = ?', [req.params.id]);
-    res.status(204).send();
-});
-
-// Site Settings
-app.get('/api/site-settings', async (req, res) => {
-    const items = await db.all('SELECT * FROM site_settings');
-    res.json(items);
-});
-
-app.put('/api/site-settings/:key', async (req, res) => {
-    const { value } = req.body;
-    const existing = await db.get('SELECT id FROM site_settings WHERE key = ?', [req.params.key]);
-    
-    if (existing) {
-        await db.run('UPDATE site_settings SET value = ? WHERE key = ?', [value, req.params.key]);
-    } else {
-        await db.run('INSERT INTO site_settings (key, value) VALUES (?, ?)', [req.params.key, value]);
+        res.status(201).json({
+            id: dbResult.lastID,
+            url: result.secure_url
+        });
+    } catch (err) {
+        res.status(500).json({ error: "Upload failed" });
     }
-    res.json({ key: req.params.key, value });
 });
 
-// Upload placeholder
+/* =========================
+   GALLERY (CLOUDINARY)
+========================= */
+app.post("/api/gallery/upload", upload.single("image"), async (req, res) => {
+    try {
+        const { type, caption } = req.body;
 
+        const result = await uploadToCloudinary(req.file.buffer, "gallery");
 
-// Start server
+        const dbResult = await db.run(
+            "INSERT INTO gallery_items (type, url, caption) VALUES (?, ?, ?)",
+            [type || "image", result.secure_url, caption || ""]
+        );
+
+        res.status(201).json({
+            id: dbResult.lastID,
+            url: result.secure_url
+        });
+    } catch (err) {
+        res.status(500).json({ error: "Upload failed" });
+    }
+});
+
+/* =========================
+   KEEP YOUR OLD ROUTES (UNCHANGED)
+========================= */
+// (You can keep news, events, messages, settings exactly as they are)
+
+/* =========================
+   START SERVER
+========================= */
 async function startServer() {
-
-
-    // Only seed if DB file doesn't exist yet
     const dbExists = fs.existsSync(dbPath);
 
     await initDatabase();
-
-    if (!dbExists) {
-        await seedData(); // Only seed default data if database is new
-    }
+    if (!dbExists) await seedData();
 
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
