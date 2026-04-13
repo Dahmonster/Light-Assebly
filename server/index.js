@@ -16,9 +16,9 @@ const dbPath = path.join(__dirname, "../data/lightMinistry.db");
 
 let db;
 
-// =====================
-// CLOUDINARY UPLOADER
-// =====================
+/***********************
+ * CLOUDINARY UPLOADER
+ ***********************/
 const upload = multer({ storage: multer.memoryStorage() });
 
 function uploadToCloudinary(buffer, folder) {
@@ -35,9 +35,9 @@ function uploadToCloudinary(buffer, folder) {
     });
 }
 
-// =====================
-// INIT DB
-// =====================
+/***********************
+ * INIT DB
+ ***********************/
 async function initDatabase() {
     db = await open({
         filename: dbPath,
@@ -105,20 +105,34 @@ async function initDatabase() {
             isRead INTEGER DEFAULT 0
         );
     `);
+
+    console.log("✅ Database ready");
 }
 
-// =====================
-// MIDDLEWARE
-// =====================
+/***********************
+ * MIDDLEWARE
+ ***********************/
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "../public")));
 
-// =====================
-// HERO SLIDES (CLOUDINARY)
-// =====================
+/***********************
+ * SAFE FILE CHECK
+ ***********************/
+function requireFile(req) {
+    if (!req.file) {
+        throw new Error("No file uploaded");
+    }
+}
+
+/***********************
+ * HERO SLIDES
+ ***********************/
 app.post("/api/hero-slides", upload.single("image"), async (req, res) => {
     try {
+        requireFile(req);
+
         const { caption, orderIndex } = req.body;
 
         const result = await uploadToCloudinary(
@@ -128,23 +142,26 @@ app.post("/api/hero-slides", upload.single("image"), async (req, res) => {
 
         const dbResult = await db.run(
             "INSERT INTO hero_slides (imageUrl, caption, orderIndex) VALUES (?, ?, ?)",
-            [result.secure_url, caption, Number(orderIndex) || 0]
+            [result.secure_url, caption || "", Number(orderIndex) || 0]
         );
 
         res.json({
             id: dbResult.lastID,
             imageUrl: result.secure_url
         });
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// =====================
-// STAFF (CLOUDINARY)
-// =====================
+/***********************
+ * STAFF
+ ***********************/
 app.post("/api/staff-members", upload.single("image"), async (req, res) => {
     try {
+        requireFile(req);
+
         const { name, position } = req.body;
 
         const result = await uploadToCloudinary(
@@ -154,23 +171,26 @@ app.post("/api/staff-members", upload.single("image"), async (req, res) => {
 
         const dbResult = await db.run(
             "INSERT INTO staff_members (name, position, imageUrl) VALUES (?, ?, ?)",
-            [name, position, result.secure_url]
+            [name || "", position || "", result.secure_url]
         );
 
         res.json({
             id: dbResult.lastID,
             imageUrl: result.secure_url
         });
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// =====================
-// BACKGROUND (CLOUDINARY)
-// =====================
+/***********************
+ * BACKGROUND IMAGES
+ ***********************/
 app.post("/api/background-images", upload.single("image"), async (req, res) => {
     try {
+        requireFile(req);
+
         const result = await uploadToCloudinary(
             req.file.buffer,
             "light-ministry/backgrounds"
@@ -185,14 +205,15 @@ app.post("/api/background-images", upload.single("image"), async (req, res) => {
             id: dbResult.lastID,
             url: result.secure_url
         });
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// =====================
-// GALLERY (CLOUDINARY)
-// =====================
+/***********************
+ * GALLERY
+ ***********************/
 app.post("/api/gallery-items", upload.single("image"), async (req, res) => {
     try {
         const { type, caption, videoUrl } = req.body;
@@ -200,10 +221,13 @@ app.post("/api/gallery-items", upload.single("image"), async (req, res) => {
         let finalUrl = "";
 
         if (type === "image") {
+            requireFile(req);
+
             const result = await uploadToCloudinary(
                 req.file.buffer,
                 "light-ministry/gallery"
             );
+
             finalUrl = result.secure_url;
         } else {
             finalUrl = videoUrl;
@@ -211,44 +235,52 @@ app.post("/api/gallery-items", upload.single("image"), async (req, res) => {
 
         const dbResult = await db.run(
             "INSERT INTO gallery_items (type, url, caption) VALUES (?, ?, ?)",
-            [type, finalUrl, caption]
+            [type, finalUrl, caption || ""]
         );
 
         res.json({
             id: dbResult.lastID,
             url: finalUrl
         });
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// =====================
-// DIRECTOR MESSAGE (NO FILE UPLOAD OPTIONAL)
-// =====================
+/***********************
+ * DIRECTOR MESSAGE
+ ***********************/
 app.put("/api/director-message", async (req, res) => {
-    const { title, message, imageUrl } = req.body;
+    try {
+        const { title, message, imageUrl } = req.body;
 
-    const existing = await db.get("SELECT id FROM director_message LIMIT 1");
+        const existing = await db.get(
+            "SELECT id FROM director_message LIMIT 1"
+        );
 
-    if (existing) {
-        await db.run(
-            "UPDATE director_message SET title=?, message=?, imageUrl=? WHERE id=?",
-            [title, message, imageUrl, existing.id]
-        );
-    } else {
-        await db.run(
-            "INSERT INTO director_message (title, message, imageUrl) VALUES (?, ?, ?)",
-            [title, message, imageUrl]
-        );
+        if (existing) {
+            await db.run(
+                "UPDATE director_message SET title=?, message=?, imageUrl=? WHERE id=?",
+                [title, message, imageUrl, existing.id]
+            );
+        } else {
+            await db.run(
+                "INSERT INTO director_message (title, message, imageUrl) VALUES (?, ?, ?)",
+                [title, message, imageUrl]
+            );
+        }
+
+        res.json({ success: true });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-
-    res.json({ success: true });
 });
 
-// =====================
-// ALL READ ROUTES (UNCHANGED)
-// =====================
+/***********************
+ * READ ROUTES
+ ***********************/
 app.get("/api/hero-slides", async (req, res) => {
     res.json(await db.all("SELECT * FROM hero_slides ORDER BY orderIndex"));
 });
@@ -269,14 +301,16 @@ app.get("/api/director-message", async (req, res) => {
     res.json(await db.get("SELECT * FROM director_message LIMIT 1"));
 });
 
-// =====================
-// START SERVER
-// =====================
+/***********************
+ * START SERVER
+ ***********************/
 async function start() {
     await initDatabase();
 
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log("Server running on " + PORT));
+    app.listen(PORT, () =>
+        console.log("🚀 Server running on port " + PORT)
+    );
 }
 
 start();
