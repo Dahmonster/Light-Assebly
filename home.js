@@ -15,10 +15,8 @@ async function setupDynamicBackground() {
         return;
     }
 
-    // Set initial background
     updateBackground();
 
-    // Change background every 5 seconds
     setInterval(() => {
         currentBgIndex = (currentBgIndex + 1) % backgroundImages.length;
         updateBackground();
@@ -31,6 +29,7 @@ function updateBackground() {
         bgElement.style.backgroundImage = `url(${backgroundImages[currentBgIndex].url})`;
     }
 }
+
 
 // Hero Slider
 let currentSlideIndex = 0;
@@ -47,20 +46,20 @@ async function setupHeroSlider() {
     renderHeroSlides();
     renderSliderDots();
 
-    // Auto-advance slides every 3 seconds
     setInterval(() => {
         currentSlideIndex = (currentSlideIndex + 1) % heroSlides.length;
         updateHeroSlider();
     }, 3000);
 
-    // Manual navigation
-    document.getElementById('prevSlide').addEventListener('click', prevSlide);
-    document.getElementById('nextSlide').addEventListener('click', nextSlide);
+    document.getElementById('prevSlide')?.addEventListener('click', prevSlide);
+    document.getElementById('nextSlide')?.addEventListener('click', nextSlide);
 }
 
 function renderHeroSlides() {
     const wrapper = document.getElementById('slidesWrapper');
-    wrapper.innerHTML = heroSlides.map((slide, index) => `
+    if (!wrapper) return;
+
+    wrapper.innerHTML = heroSlides.map((slide) => `
         <div class="slide" style="background-image: url(${slide.imageUrl});">
             <div class="slide-caption">${slide.caption || ''}</div>
         </div>
@@ -69,6 +68,8 @@ function renderHeroSlides() {
 
 function renderSliderDots() {
     const dots = document.getElementById('sliderDots');
+    if (!dots) return;
+
     dots.innerHTML = heroSlides.map((_, index) => `
         <div class="slider-dot ${index === 0 ? 'active' : ''}" data-index="${index}"></div>
     `).join('');
@@ -83,10 +84,11 @@ function renderSliderDots() {
 
 function updateHeroSlider() {
     const wrapper = document.getElementById('slidesWrapper');
+    if (!wrapper) return;
+
     const offset = currentSlideIndex * -100;
     wrapper.style.transform = `translateX(${offset}%)`;
 
-    // Update active dot
     document.querySelectorAll('.slider-dot').forEach((dot, index) => {
         dot.classList.toggle('active', index === currentSlideIndex);
     });
@@ -102,9 +104,12 @@ function nextSlide() {
     updateHeroSlider();
 }
 
+
 // Director Card
 async function setupDirectorCard() {
     const section = document.getElementById('directorSection');
+    if (!section) return;
+
     const director = await Utils.fetchAPI('/director-message');
 
     if (!director) {
@@ -118,12 +123,12 @@ async function setupDirectorCard() {
         <div class="director-container">
             <div class="director-card" id="directorCard">
                 <div class="director-side director-text-side">
-                    <h2 id="directorTitle">${director.title}</h2>
-                    <p id="directorMessage">${director.message}</p>
+                    <h2>${director.title}</h2>
+                    <p>${director.message}</p>
                 </div>
                 <div class="director-side director-image-side" style="background-image: url(${director.imageUrl});">
                     <div class="director-colored-side">
-                        <span id="directorAltText">MESSAGE FROM THE SENIOR PASTOR</span>
+                        <span>MESSAGE FROM THE SENIOR PASTOR</span>
                     </div>
                 </div>
             </div>
@@ -137,10 +142,13 @@ async function setupDirectorCard() {
     });
 }
 
+
 // Staff Slider
 async function setupStaffSlider() {
     const staffData = await Utils.fetchAPI('/staff-members') || [];
     const slider = document.getElementById('staffSlider');
+
+    if (!slider) return;
 
     if (staffData.length === 0) {
         slider.innerHTML = '<p>No staff members available</p>';
@@ -157,58 +165,71 @@ async function setupStaffSlider() {
         </div>
     `).join('');
 
-    startStaffAutoScroll()
+    startStaffAutoScroll();
 }
 
 function startStaffAutoScroll() {
     const slider = document.getElementById('staffSlider');
+    if (!slider) return;
 
     setInterval(() => {
+        slider.scrollBy({ left: 250, behavior: "smooth" });
 
-        slider.scrollBy({
-            left: 250,
-            behavior: "smooth"
-        });
-
-        // restart when reaching the end
         if (slider.scrollLeft + slider.clientWidth >= slider.scrollWidth) {
-            slider.scrollTo({
-                left: 0,
-                behavior: "smooth"
-            });
+            slider.scrollTo({ left: 0, behavior: "smooth" });
         }
 
     }, 3000);
 }
 
 
-// News Section
+// ✅ FIXED NEWS SECTION
 async function setupNewsSection() {
-    const newsData = await Utils.fetchAPI('/news-posts') || [];
-    const latestNews = newsData.slice(0, 3);
-    const grid = document.getElementById('newsGrid');
+    try {
+        const newsData = await Utils.fetchAPI('/news') || [];
+        const latestNews = newsData.slice(0, 3);
+        const grid = document.getElementById('newsGrid');
 
-    if (latestNews.length === 0) {
-        grid.innerHTML = '<p>No news available</p>';
-        return;
-    }
+        if (!grid) return;
 
-    grid.innerHTML = latestNews.map(post => `
-        <a href="news.html?slug=${post.slug}" class="news-card">
-            ${post.featuredImage ? `<img src="${post.featuredImage}" alt="${post.title}" class="news-image">` : ''}
-            <div class="news-body">
-                <div class="news-date">
-                    📅 ${Utils.formatDate(post.createdAt)}
+        if (latestNews.length === 0) {
+            grid.innerHTML = '<p>No news available</p>';
+            return;
+        }
+
+        grid.innerHTML = latestNews.map(post => `
+            <a href="news.html?slug=${post.slug}" class="news-card">
+
+                ${post.imageUrl
+                    ? `<img src="${post.imageUrl}" alt="${post.title}" class="news-image">`
+                    : ''
+                }
+
+                <div class="news-body">
+
+                    <div class="news-date">
+                        📅 ${post.createdAt ? Utils.formatDate(post.createdAt) : ''}
+                    </div>
+
+                    <h3 class="news-title">${post.title}</h3>
+
+                    <p class="news-excerpt">
+                        ${post.preview || ''}
+                    </p>
+
+                    <div class="news-link">Read Article →</div>
+
                 </div>
-                <h3 class="news-title">${post.title}</h3>
-                <p class="news-excerpt">${post.previewText}</p>
-                <div class="news-link">Read Article →</div>
-            </div>
-        </a>
-    `).join('');
+            </a>
+        `).join('');
+
+    } catch (err) {
+        console.error("News load error:", err);
+    }
 }
 
-// Initialize Home Page
+
+// INIT
 document.addEventListener('DOMContentLoaded', () => {
     setupDynamicBackground();
     setupHeroSlider();
