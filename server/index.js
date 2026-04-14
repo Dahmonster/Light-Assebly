@@ -48,7 +48,7 @@ async function safeUpload(file, folder) {
     return res.secure_url;
 }
 
-/* ================= DATABASE ================= */
+/* ================= DB INIT ================= */
 async function initDB() {
     db = await open({
         filename: dbPath,
@@ -95,17 +95,13 @@ app.post("/api/auth/login", (req, res) => {
     const { username, password } = req.body;
 
     if (username === "admin" && password === "lightAdmin") {
-        const token = jwt.sign({ user: "admin" }, JWT_SECRET, {
-            expiresIn: "2h"
-        });
-
+        const token = jwt.sign({ user: "admin" }, JWT_SECRET, { expiresIn: "2h" });
         return res.json({ success: true, token });
     }
 
-    return res.status(401).json({ success: false, message: "Invalid login" });
+    res.status(401).json({ success: false, message: "Invalid login" });
 });
 
-/* ================= AUTH MIDDLEWARE ================= */
 function auth(req, res, next) {
     const header = req.headers.authorization;
 
@@ -201,9 +197,10 @@ app.delete("/api/background-images/:id", auth, async (req, res) => {
 
 /* ================= GALLERY ================= */
 app.post("/api/gallery-items", auth, upload.single("image"), async (req, res) => {
-    const url = req.body.type === "video"
-        ? req.body.url
-        : await safeUpload(req.file, "gallery");
+    const url =
+        req.body.type === "video"
+            ? req.body.url
+            : await safeUpload(req.file, "gallery");
 
     const result = await db.run(
         "INSERT INTO gallery_items (type, url, caption) VALUES (?,?,?)",
@@ -255,11 +252,6 @@ app.put("/api/events/:id", auth, async (req, res) => {
 app.delete("/api/events/:id", auth, async (req, res) => {
     await db.run("DELETE FROM events WHERE id=?", [req.params.id]);
     res.json({ success: true });
-});
-
-/* ================= ROOT ================= */
-app.get("/", (req, res) => {
-    res.send("Enterprise CMS Running 🚀");
 });
 
 /* ================= START ================= */
