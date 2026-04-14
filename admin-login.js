@@ -14,15 +14,24 @@ async function handleLogin(e) {
             body: JSON.stringify({ username, password })
         });
 
-        if (response.ok) {
-            // Store username in localStorage
+        const data = await response.json(); // ✅ GET RESPONSE BODY
+
+        if (response.ok && data.token) {
+
+            // ✅ SAVE TOKEN (THIS FIXES EVERYTHING)
+            localStorage.setItem('token', data.token);
+
+            // optional
             localStorage.setItem('adminUser', username);
-            // Redirect to dashboard
+
+            // redirect
             window.location.href = 'dashboard.html';
+
         } else {
-            messageEl.textContent = 'Invalid username or password';
+            messageEl.textContent = data.message || 'Invalid username or password';
             messageEl.className = 'error';
         }
+
     } catch (error) {
         console.error('Login error:', error);
         messageEl.textContent = 'Error connecting to server';
