@@ -18,7 +18,6 @@ const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const dbPath = path.join(__dirname, "../data/lightMinistry.db");
 
 let db;
@@ -29,10 +28,10 @@ app.use(cors({
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../public")));
 
-/* ================= ROOT FIX (Render) ================= */
 app.get("/", (req, res) => {
     res.send("API is running...");
 });
@@ -57,7 +56,7 @@ async function safeUpload(file, folder) {
     return res.secure_url;
 }
 
-/* ================= DB INIT ================= */
+/* ================= DB ================= */
 async function initDB() {
     db = await open({
         filename: dbPath,
@@ -96,6 +95,23 @@ async function initDB() {
             description TEXT,
             eventDate TEXT
         );
+
+        /* NEW */
+        CREATE TABLE IF NOT EXISTS news (
+            id INTEGER PRIMARY KEY,
+            title TEXT,
+            slug TEXT,
+            preview TEXT,
+            content TEXT,
+            imageUrl TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            email TEXT,
+            message TEXT
+        );
     `);
 }
 
@@ -108,18 +124,16 @@ app.post("/api/auth/login", (req, res) => {
         return res.json({ success: true, token });
     }
 
-    res.status(401).json({ success: false, message: "Invalid login" });
+    res.status(401).json({ message: "Invalid login" });
 });
 
 function auth(req, res, next) {
     const header = req.headers.authorization;
-
     if (!header) return res.status(403).json({ message: "No token" });
 
     try {
         const token = header.split(" ")[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded;
+        jwt.verify(token, JWT_SECRET);
         next();
     } catch {
         res.status(403).json({ message: "Invalid token" });
@@ -128,32 +142,16 @@ function auth(req, res, next) {
 
 /* ================= HERO ================= */
 app.post("/api/hero-slides", auth, upload.single("image"), async (req, res) => {
-    try {
-        const imageUrl = await safeUpload(req.file, "hero");
-
-        const result = await db.run(
-            "INSERT INTO hero_slides (imageUrl, caption) VALUES (?,?)",
-            [imageUrl, req.body.caption || ""]
-        );
-
-        res.json({ success: true, id: result.lastID });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Upload failed" });
-    }
+    const imageUrl = await safeUpload(req.file, "hero");
+    const result = await db.run(
+        "INSERT INTO hero_slides (imageUrl, caption) VALUES (?,?)",
+        [imageUrl, req.body.caption || ""]
+    );
+    res.json({ success: true });
 });
 
 app.get("/api/hero-slides", async (req, res) => {
-    res.json(await db.all("SELECT * FROM hero_slides ORDER BY id DESC"));
-});
-
-app.put("/api/hero-slides/:id", auth, async (req, res) => {
-    await db.run(
-        "UPDATE hero_slides SET caption=? WHERE id=?",
-        [req.body.caption, req.params.id]
-    );
-    res.json({ success: true });
+    res.json(await db.all("SELECT * FROM hero_slides"));
 });
 
 app.delete("/api/hero-slides/:id", auth, async (req, res) => {
@@ -163,136 +161,87 @@ app.delete("/api/hero-slides/:id", auth, async (req, res) => {
 
 /* ================= STAFF ================= */
 app.post("/api/staff-members", auth, upload.single("image"), async (req, res) => {
-    try {
-        const imageUrl = await safeUpload(req.file, "staff");
-
-        const result = await db.run(
-            "INSERT INTO staff_members (name, position, imageUrl) VALUES (?,?,?)",
-            [req.body.name, req.body.position, imageUrl]
-        );
-
-        res.json({ success: true, id: result.lastID });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Upload failed" });
-    }
+    const imageUrl = await safeUpload(req.file, "staff");
+    await db.run(
+        "INSERT INTO staff_members (name, position, imageUrl) VALUES (?,?,?)",
+        [req.body.name, req.body.position, imageUrl]
+    );
+    res.json({ success: true });
 });
 
 app.get("/api/staff-members", async (req, res) => {
     res.json(await db.all("SELECT * FROM staff_members"));
 });
 
-app.put("/api/staff-members/:id", auth, async (req, res) => {
-    await db.run(
-        "UPDATE staff_members SET name=?, position=? WHERE id=?",
-        [req.body.name, req.body.position, req.params.id]
-    );
-    res.json({ success: true });
-});
-
-app.delete("/api/staff-members/:id", auth, async (req, res) => {
-    await db.run("DELETE FROM staff_members WHERE id=?", [req.params.id]);
-    res.json({ success: true });
-});
-
 /* ================= BACKGROUND ================= */
 app.post("/api/background-images", auth, upload.single("image"), async (req, res) => {
-    try {
-        const url = await safeUpload(req.file, "background");
-
-        const result = await db.run(
-            "INSERT INTO background_images (url) VALUES (?)",
-            [url]
-        );
-
-        res.json({ success: true, id: result.lastID });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Upload failed" });
-    }
+    const url = await safeUpload(req.file, "background");
+    await db.run("INSERT INTO background_images (url) VALUES (?)", [url]);
+    res.json({ success: true });
 });
 
 app.get("/api/background-images", async (req, res) => {
     res.json(await db.all("SELECT * FROM background_images"));
 });
 
-app.delete("/api/background-images/:id", auth, async (req, res) => {
-    await db.run("DELETE FROM background_images WHERE id=?", [req.params.id]);
-    res.json({ success: true });
-});
-
 /* ================= GALLERY ================= */
 app.post("/api/gallery-items", auth, upload.single("image"), async (req, res) => {
-    try {
-        const url =
-            req.body.type === "video"
-                ? req.body.url
-                : await safeUpload(req.file, "gallery");
+    const url = req.body.type === "video"
+        ? req.body.url
+        : await safeUpload(req.file, "gallery");
 
-        const result = await db.run(
-            "INSERT INTO gallery_items (type, url, caption) VALUES (?,?,?)",
-            [req.body.type, url, req.body.caption || ""]
-        );
+    await db.run(
+        "INSERT INTO gallery_items (type, url, caption) VALUES (?,?,?)",
+        [req.body.type, url, req.body.caption]
+    );
 
-        res.json({ success: true, id: result.lastID });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Upload failed" });
-    }
+    res.json({ success: true });
 });
 
 app.get("/api/gallery-items", async (req, res) => {
     res.json(await db.all("SELECT * FROM gallery_items"));
 });
 
-app.put("/api/gallery-items/:id", auth, async (req, res) => {
-    await db.run(
-        "UPDATE gallery_items SET caption=? WHERE id=?",
-        [req.body.caption, req.params.id]
-    );
-    res.json({ success: true });
-});
-
-app.delete("/api/gallery-items/:id", auth, async (req, res) => {
-    await db.run("DELETE FROM gallery_items WHERE id=?", [req.params.id]);
-    res.json({ success: true });
-});
-
 /* ================= EVENTS ================= */
 app.post("/api/events", auth, async (req, res) => {
-    const result = await db.run(
+    await db.run(
         "INSERT INTO events (title, description, eventDate) VALUES (?,?,?)",
         [req.body.title, req.body.description, req.body.eventDate]
     );
-
-    res.json({ success: true, id: result.lastID });
+    res.json({ success: true });
 });
 
 app.get("/api/events", async (req, res) => {
-    res.json(await db.all("SELECT * FROM events ORDER BY id DESC"));
+    res.json(await db.all("SELECT * FROM events"));
 });
 
-app.put("/api/events/:id", auth, async (req, res) => {
+/* ================= NEWS ================= */
+app.post("/api/news", auth, upload.single("image"), async (req, res) => {
+    const imageUrl = await safeUpload(req.file, "news");
+
     await db.run(
-        "UPDATE events SET title=?, description=? WHERE id=?",
-        [req.body.title, req.body.description, req.params.id]
+        "INSERT INTO news (title, slug, preview, content, imageUrl) VALUES (?,?,?,?,?)",
+        [req.body.title, req.body.slug, req.body.preview, req.body.content, imageUrl]
     );
+
     res.json({ success: true });
 });
 
-app.delete("/api/events/:id", auth, async (req, res) => {
-    await db.run("DELETE FROM events WHERE id=?", [req.params.id]);
-    res.json({ success: true });
+app.get("/api/news", async (req, res) => {
+    res.json(await db.all("SELECT * FROM news"));
+});
+
+/* ================= MESSAGES ================= */
+app.get("/api/messages", auth, async (req, res) => {
+    res.json(await db.all("SELECT * FROM messages"));
 });
 
 /* ================= START ================= */
 async function start() {
     await initDB();
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log("Server running on " + PORT));
+    app.listen(process.env.PORT || 5000, () =>
+        console.log("Server running")
+    );
 }
 
 start();
