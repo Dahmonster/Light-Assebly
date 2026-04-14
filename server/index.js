@@ -96,6 +96,7 @@ async function initDB() {
             eventDate TEXT
         );
 
+        /* NEW */
         CREATE TABLE IF NOT EXISTS news (
             id INTEGER PRIMARY KEY,
             title TEXT,
@@ -143,12 +144,10 @@ function auth(req, res, next) {
 /* ================= HERO ================= */
 app.post("/api/hero-slides", auth, upload.single("image"), async (req, res) => {
     const imageUrl = await safeUpload(req.file, "hero");
-
-    await db.run(
+    const result = await db.run(
         "INSERT INTO hero_slides (imageUrl, caption) VALUES (?,?)",
         [imageUrl, req.body.caption || ""]
     );
-
     res.json({ success: true });
 });
 
@@ -156,23 +155,6 @@ app.get("/api/hero-slides", async (req, res) => {
     res.json(await db.all("SELECT * FROM hero_slides"));
 });
 
-/* ✅ UPDATE HERO */
-app.put("/api/hero-slides/:id", auth, upload.single("image"), async (req, res) => {
-    let imageUrl = req.body.imageUrl;
-
-    if (req.file) {
-        imageUrl = await safeUpload(req.file, "hero");
-    }
-
-    await db.run(
-        "UPDATE hero_slides SET caption=?, imageUrl=? WHERE id=?",
-        [req.body.caption, imageUrl, req.params.id]
-    );
-
-    res.json({ success: true });
-});
-
-/* DELETE */
 app.delete("/api/hero-slides/:id", auth, async (req, res) => {
     await db.run("DELETE FROM hero_slides WHERE id=?", [req.params.id]);
     res.json({ success: true });
@@ -181,12 +163,10 @@ app.delete("/api/hero-slides/:id", auth, async (req, res) => {
 /* ================= STAFF ================= */
 app.post("/api/staff-members", auth, upload.single("image"), async (req, res) => {
     const imageUrl = await safeUpload(req.file, "staff");
-
     await db.run(
         "INSERT INTO staff_members (name, position, imageUrl) VALUES (?,?,?)",
         [req.body.name, req.body.position, imageUrl]
     );
-
     res.json({ success: true });
 });
 
@@ -194,26 +174,15 @@ app.get("/api/staff-members", async (req, res) => {
     res.json(await db.all("SELECT * FROM staff_members"));
 });
 
-/* UPDATE STAFF */
-app.put("/api/staff-members/:id", auth, upload.single("image"), async (req, res) => {
-    let imageUrl = req.body.imageUrl;
-
-    if (req.file) {
-        imageUrl = await safeUpload(req.file, "staff");
-    }
-
-    await db.run(
-        "UPDATE staff_members SET name=?, position=?, imageUrl=? WHERE id=?",
-        [req.body.name, req.body.position, imageUrl, req.params.id]
-    );
-
+/* ================= BACKGROUND ================= */
+app.post("/api/background-images", auth, upload.single("image"), async (req, res) => {
+    const url = await safeUpload(req.file, "background");
+    await db.run("INSERT INTO background_images (url) VALUES (?)", [url]);
     res.json({ success: true });
 });
 
-/* DELETE */
-app.delete("/api/staff-members/:id", auth, async (req, res) => {
-    await db.run("DELETE FROM staff_members WHERE id=?", [req.params.id]);
-    res.json({ success: true });
+app.get("/api/background-images", async (req, res) => {
+    res.json(await db.all("SELECT * FROM background_images"));
 });
 
 /* ================= GALLERY ================= */
@@ -234,58 +203,17 @@ app.get("/api/gallery-items", async (req, res) => {
     res.json(await db.all("SELECT * FROM gallery_items"));
 });
 
-/* UPDATE GALLERY */
-app.put("/api/gallery-items/:id", auth, upload.single("image"), async (req, res) => {
-    let url = req.body.url;
-
-    if (req.body.type === "video") {
-        url = req.body.url;
-    } else if (req.file) {
-        url = await safeUpload(req.file, "gallery");
-    }
-
-    await db.run(
-        "UPDATE gallery_items SET type=?, url=?, caption=? WHERE id=?",
-        [req.body.type, url, req.body.caption, req.params.id]
-    );
-
-    res.json({ success: true });
-});
-
-/* DELETE */
-app.delete("/api/gallery-items/:id", auth, async (req, res) => {
-    await db.run("DELETE FROM gallery_items WHERE id=?", [req.params.id]);
-    res.json({ success: true });
-});
-
 /* ================= EVENTS ================= */
 app.post("/api/events", auth, async (req, res) => {
     await db.run(
         "INSERT INTO events (title, description, eventDate) VALUES (?,?,?)",
         [req.body.title, req.body.description, req.body.eventDate]
     );
-
     res.json({ success: true });
 });
 
 app.get("/api/events", async (req, res) => {
     res.json(await db.all("SELECT * FROM events"));
-});
-
-/* UPDATE EVENTS */
-app.put("/api/events/:id", auth, async (req, res) => {
-    await db.run(
-        "UPDATE events SET title=?, description=?, eventDate=? WHERE id=?",
-        [req.body.title, req.body.description, req.body.eventDate, req.params.id]
-    );
-
-    res.json({ success: true });
-});
-
-/* DELETE */
-app.delete("/api/events/:id", auth, async (req, res) => {
-    await db.run("DELETE FROM events WHERE id=?", [req.params.id]);
-    res.json({ success: true });
 });
 
 /* ================= NEWS ================= */
@@ -304,48 +232,33 @@ app.get("/api/news", async (req, res) => {
     res.json(await db.all("SELECT * FROM news"));
 });
 
-/* UPDATE NEWS */
-app.put("/api/news/:id", auth, upload.single("image"), async (req, res) => {
-    let imageUrl = req.body.imageUrl;
-
-    if (req.file) {
-        imageUrl = await safeUpload(req.file, "news");
-    }
-
-    await db.run(
-        "UPDATE news SET title=?, slug=?, preview=?, content=?, imageUrl=? WHERE id=?",
-        [req.body.title, req.body.slug, req.body.preview, req.body.content, imageUrl, req.params.id]
-    );
-
-    res.json({ success: true });
-});
-
-/* DELETE */
-app.delete("/api/news/:id", auth, async (req, res) => {
-    await db.run("DELETE FROM news WHERE id=?", [req.params.id]);
-    res.json({ success: true });
-});
-
 /* ================= MESSAGES ================= */
-app.post("/api/contact-messages", async (req, res) => {
-    const { name, email, subject, message } = req.body;
-
-    await db.run(
-        "INSERT INTO messages (name, email, subject, message) VALUES (?,?,?,?)",
-        [name, email, subject, message]
-    );
-
-    res.json({ success: true });
-});
-
 app.get("/api/messages", auth, async (req, res) => {
     res.json(await db.all("SELECT * FROM messages"));
 });
 
-/* DELETE MESSAGE */
-app.delete("/api/messages/:id", auth, async (req, res) => {
-    await db.run("DELETE FROM messages WHERE id=?", [req.params.id]);
-    res.json({ success: true });
+
+// SAVE message (FROM CONTACT FORM)
+app.post("/api/contact-messages", async (req, res) => {
+    try {
+        const { name, email, subject, message } = req.body;
+
+        await db.run(
+            "INSERT INTO messages (name, email, subject, message) VALUES (?,?,?,?)",
+            [name, email, subject, message]
+        );
+
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("Message error:", err);
+        res.status(500).json({ message: "Failed to send message" });
+    }
+});
+
+// ADMIN FETCH messages
+app.get("/api/messages", auth, async (req, res) => {
+    res.json(await db.all("SELECT * FROM messages"));
 });
 
 /* ================= START ================= */
