@@ -3,7 +3,6 @@ const API = "https://light-assembly.onrender.com/api";
 /* ================= TOAST ================= */
 function toast(msg, type = "success") {
     const el = document.createElement("div");
-
     el.textContent = msg;
 
     Object.assign(el.style, {
@@ -14,9 +13,7 @@ function toast(msg, type = "success") {
         color: "white",
         padding: "12px 16px",
         borderRadius: "8px",
-        zIndex: 99999,
-        fontSize: "14px",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+        zIndex: 99999
     });
 
     document.body.appendChild(el);
@@ -28,8 +25,6 @@ async function api(url, options = {}) {
     const token =
         localStorage.getItem("token") ||
         sessionStorage.getItem("token");
-
-    console.log("TOKEN:", token);
 
     const res = await fetch(API + url, {
         ...options,
@@ -46,17 +41,19 @@ async function api(url, options = {}) {
         data = {};
     }
 
-    // 🚨 NO AUTO LOGOUT ANYMORE
-    if (res.status === 403) {
-        console.error("403 ERROR:", data);
-        throw new Error(data.message || "Forbidden");
-    }
-
     if (!res.ok) {
+        console.error("API ERROR:", data);
         throw new Error(data.message || "Request failed");
     }
 
     return data;
+}
+
+/* ================= LOGOUT ================= */
+function logout() {
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
+    window.location.href = "login.html";
 }
 
 /* ================= MENU ================= */
@@ -71,9 +68,6 @@ function switchSection(section) {
     document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
     document.getElementById(`${section}-section`)?.classList.add("active");
 
-    document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
-    document.querySelector(`[data-section="${section}"]`)?.classList.add("active");
-
     ({
         hero: loadHero,
         staff: loadStaff,
@@ -86,12 +80,14 @@ function switchSection(section) {
 /* ================= HERO ================= */
 async function addHero() {
     try {
-        const file = heroFile.files[0];
+        const file = document.getElementById("heroFile")?.files[0];
+        const caption = document.getElementById("heroCaption")?.value;
+
         if (!file) return toast("Select image", "error");
 
         const form = new FormData();
         form.append("image", file);
-        form.append("caption", heroCaption.value);
+        form.append("caption", caption);
 
         await api("/hero-slides", { method: "POST", body: form });
 
@@ -107,7 +103,7 @@ async function loadHero() {
     try {
         const data = await api("/hero-slides");
 
-        heroList.innerHTML = data.map(i => `
+        document.getElementById("heroList").innerHTML = data.map(i => `
             <div>
                 <img src="${i.imageUrl}" width="100"/>
                 <input id="hero-${i.id}" value="${i.caption || ""}"/>
@@ -126,7 +122,9 @@ async function updateHero(id) {
         await api(`/hero-slides/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ caption: document.getElementById(`hero-${id}`).value })
+            body: JSON.stringify({
+                caption: document.getElementById(`hero-${id}`).value
+            })
         });
 
         toast("Updated");
@@ -142,7 +140,6 @@ async function deleteHero(id) {
         await api(`/hero-slides/${id}`, { method: "DELETE" });
         toast("Deleted");
         loadHero();
-
     } catch (err) {
         toast(err.message, "error");
     }
@@ -151,13 +148,16 @@ async function deleteHero(id) {
 /* ================= STAFF ================= */
 async function addStaff() {
     try {
-        const file = staffFile.files[0];
-        if (!file || !staffName.value) return toast("Fill fields", "error");
+        const file = document.getElementById("staffFile")?.files[0];
+        const name = document.getElementById("staffName")?.value;
+        const position = document.getElementById("staffPosition")?.value;
+
+        if (!file || !name) return toast("Fill all fields", "error");
 
         const form = new FormData();
         form.append("image", file);
-        form.append("name", staffName.value);
-        form.append("position", staffPosition.value);
+        form.append("name", name);
+        form.append("position", position);
 
         await api("/staff-members", { method: "POST", body: form });
 
@@ -173,7 +173,7 @@ async function loadStaff() {
     try {
         const data = await api("/staff-members");
 
-        staffList.innerHTML = data.map(i => `
+        document.getElementById("staffList").innerHTML = data.map(i => `
             <div>
                 <img src="${i.imageUrl}" width="80"/>
                 <input id="staff-name-${i.id}" value="${i.name}"/>
@@ -212,7 +212,6 @@ async function deleteStaff(id) {
         await api(`/staff-members/${id}`, { method: "DELETE" });
         toast("Deleted");
         loadStaff();
-
     } catch (err) {
         toast(err.message, "error");
     }
@@ -221,7 +220,7 @@ async function deleteStaff(id) {
 /* ================= BACKGROUND ================= */
 async function addBackground() {
     try {
-        const file = bgFile.files[0];
+        const file = document.getElementById("bgFile")?.files[0];
         if (!file) return toast("Select image", "error");
 
         const form = new FormData();
@@ -241,7 +240,7 @@ async function loadBackground() {
     try {
         const data = await api("/background-images");
 
-        backgroundList.innerHTML = data.map(i => `
+        document.getElementById("backgroundList").innerHTML = data.map(i => `
             <div>
                 <img src="${i.url}" width="120"/>
                 <button onclick="deleteBackground(${i.id})">Delete</button>
@@ -258,7 +257,6 @@ async function deleteBackground(id) {
         await api(`/background-images/${id}`, { method: "DELETE" });
         toast("Deleted");
         loadBackground();
-
     } catch (err) {
         toast(err.message, "error");
     }
@@ -267,22 +265,24 @@ async function deleteBackground(id) {
 /* ================= GALLERY ================= */
 async function addGallery() {
     try {
-        const file = galleryFile.files[0];
-        const type = galleryType.value;
+        const file = document.getElementById("galleryFile")?.files[0];
+        const type = document.getElementById("galleryType")?.value;
+        const caption = document.getElementById("galleryCaption")?.value;
+        const videoUrl = document.getElementById("galleryVideoUrl")?.value;
 
         if (type === "image" && !file) return toast("Select image", "error");
-        if (type === "video" && !galleryVideoUrl.value) return toast("Enter video URL", "error");
+        if (type === "video" && !videoUrl) return toast("Enter video URL", "error");
 
         const form = new FormData();
         form.append("type", type);
-        form.append("caption", galleryCaption.value);
+        form.append("caption", caption);
 
-        if (type === "video") form.append("url", galleryVideoUrl.value);
+        if (type === "video") form.append("url", videoUrl);
         else form.append("image", file);
 
         await api("/gallery-items", { method: "POST", body: form });
 
-        toast("Added");
+        toast("Gallery added");
         loadGallery();
 
     } catch (err) {
@@ -294,11 +294,13 @@ async function loadGallery() {
     try {
         const data = await api("/gallery-items");
 
-        galleryList.innerHTML = data.map(i => `
+        document.getElementById("galleryList").innerHTML = data.map(i => `
             <div>
-                ${i.type === "video"
-                    ? `<a href="${i.url}" target="_blank">▶ Video</a>`
-                    : `<img src="${i.url}" width="100"/>`}
+                ${
+                    i.type === "video"
+                        ? `<a href="${i.url}" target="_blank">▶ Video</a>`
+                        : `<img src="${i.url}" width="100"/>`
+                }
                 <input id="gallery-${i.id}" value="${i.caption || ""}"/>
                 <button onclick="updateGallery(${i.id})">Update</button>
                 <button onclick="deleteGallery(${i.id})">Delete</button>
@@ -315,7 +317,9 @@ async function updateGallery(id) {
         await api(`/gallery-items/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ caption: document.getElementById(`gallery-${id}`).value })
+            body: JSON.stringify({
+                caption: document.getElementById(`gallery-${id}`).value
+            })
         });
 
         toast("Updated");
@@ -331,7 +335,6 @@ async function deleteGallery(id) {
         await api(`/gallery-items/${id}`, { method: "DELETE" });
         toast("Deleted");
         loadGallery();
-
     } catch (err) {
         toast(err.message, "error");
     }
@@ -340,17 +343,19 @@ async function deleteGallery(id) {
 /* ================= EVENTS ================= */
 async function addEvent() {
     try {
+        const title = document.getElementById("eventTitle")?.value;
+        const description = document.getElementById("eventDescription")?.value;
+        const eventDate = document.getElementById("eventDate")?.value;
+
+        if (!title) return toast("Enter title", "error");
+
         await api("/events", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                title: eventTitle.value,
-                description: eventDescription.value,
-                eventDate: eventDate.value
-            })
+            body: JSON.stringify({ title, description, eventDate })
         });
 
-        toast("Added");
+        toast("Event added");
         loadEvents();
 
     } catch (err) {
@@ -362,7 +367,7 @@ async function loadEvents() {
     try {
         const data = await api("/events");
 
-        eventsList.innerHTML = data.map(i => `
+        document.getElementById("eventsList").innerHTML = data.map(i => `
             <div>
                 <input id="event-${i.id}" value="${i.title}"/>
                 <textarea id="event-desc-${i.id}">${i.description}</textarea>
@@ -400,7 +405,6 @@ async function deleteEvent(id) {
         await api(`/events/${id}`, { method: "DELETE" });
         toast("Deleted");
         loadEvents();
-
     } catch (err) {
         toast(err.message, "error");
     }
@@ -409,10 +413,6 @@ async function deleteEvent(id) {
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", () => {
     setupMenu();
-
-    document.querySelectorAll(".nav-item").forEach(btn => {
-        btn.addEventListener("click", () => switchSection(btn.dataset.section));
-    });
 
     document.getElementById("addHeroBtn")?.addEventListener("click", addHero);
     document.getElementById("addStaffBtn")?.addEventListener("click", addStaff);
