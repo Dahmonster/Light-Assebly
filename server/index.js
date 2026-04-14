@@ -11,13 +11,13 @@ import cloudinary from "./cloudinary.js";
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
 const JWT_SECRET = process.env.JWT_SECRET;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const dbPath = path.join(__dirname, "../data/lightMinistry.db");
 
@@ -122,6 +122,16 @@ app.get("/api/hero-slides", async (req, res) => {
     res.json(await db.all("SELECT * FROM hero_slides ORDER BY id DESC"));
 });
 
+/* 🔥 EDIT HERO */
+app.put("/api/hero-slides/:id", auth, async (req, res) => {
+    await db.run(
+        "UPDATE hero_slides SET caption=? WHERE id=?",
+        [req.body.caption, req.params.id]
+    );
+    res.json({ success: true });
+});
+
+/* DELETE HERO */
 app.delete("/api/hero-slides/:id", auth, async (req, res) => {
     await db.run("DELETE FROM hero_slides WHERE id=?", [req.params.id]);
     res.json({ success: true });
@@ -143,6 +153,16 @@ app.get("/api/staff-members", async (req, res) => {
     res.json(await db.all("SELECT * FROM staff_members"));
 });
 
+/* 🔥 EDIT STAFF */
+app.put("/api/staff-members/:id", auth, async (req, res) => {
+    await db.run(
+        "UPDATE staff_members SET name=?, position=? WHERE id=?",
+        [req.body.name, req.body.position, req.params.id]
+    );
+    res.json({ success: true });
+});
+
+/* DELETE STAFF */
 app.delete("/api/staff-members/:id", auth, async (req, res) => {
     await db.run("DELETE FROM staff_members WHERE id=?", [req.params.id]);
     res.json({ success: true });
@@ -164,11 +184,18 @@ app.get("/api/background-images", async (req, res) => {
     res.json(await db.all("SELECT * FROM background_images"));
 });
 
-/* ================= START ================= */
+/* DELETE BACKGROUND */
+app.delete("/api/background-images/:id", auth, async (req, res) => {
+    await db.run("DELETE FROM background_images WHERE id=?", [req.params.id]);
+    res.json({ success: true });
+});
+
+/* ================= ROOT ================= */
 app.get("/", (req, res) => {
     res.send("CMS API Running 🚀");
 });
 
+/* ================= START ================= */
 async function start() {
     await initDB();
     const PORT = process.env.PORT || 5000;
