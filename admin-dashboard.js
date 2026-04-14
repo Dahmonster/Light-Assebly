@@ -249,14 +249,26 @@ async function loadMessages() {
     try {
         const data = await api("/messages");
 
-        messagesList.innerHTML = data.map(i => `
-            <div>
+        const container = document.getElementById("messagesList");
+
+        if (!container) return;
+
+        if (!data.length) {
+            container.innerHTML = "<p>No messages yet</p>";
+            return;
+        }
+
+        container.innerHTML = data.map(i => `
+            <div style="border:1px solid #ddd; padding:10px; margin-bottom:10px;">
                 <b>${i.name}</b>
+                <p><strong>Email:</strong> ${i.email}</p>
+                ${i.subject ? `<p><strong>Subject:</strong> ${i.subject}</p>` : ""}
                 <p>${i.message}</p>
             </div>
         `).join("");
 
-    } catch {
+    } catch (err) {
+        console.error(err);
         toast("Failed to load messages", "error");
     }
 }
