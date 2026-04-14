@@ -10,26 +10,28 @@ function toast(msg, type = "success") {
     el.style.position = "fixed";
     el.style.bottom = "20px";
     el.style.right = "20px";
-    el.style.padding = "12px";
+    el.style.padding = "12px 18px";
     el.style.background = type === "success" ? "green" : "red";
     el.style.color = "white";
     el.style.borderRadius = "8px";
     el.style.zIndex = 9999;
 
     document.body.appendChild(el);
-
-    setTimeout(() => el.remove(), 3000);
+    setTimeout(() => el.remove(), 2500);
 }
 
-/* ================= FETCH WRAPPER ================= */
+/* ================= API ================= */
 async function api(url, options = {}) {
-    return fetch(API + url, {
+    const res = await fetch(API + url, {
         ...options,
         headers: {
             Authorization: token ? `Bearer ${token}` : "",
             ...options.headers
         }
     });
+
+    if (!res.ok) throw new Error("Request failed");
+    return res.json();
 }
 
 /* ================= LOGIN ================= */
@@ -52,7 +54,7 @@ async function login(e) {
         toast("Login successful");
         window.location.href = "dashboard.html";
     } else {
-        toast("Login failed", "error");
+        toast("Invalid login", "error");
     }
 }
 
@@ -73,13 +75,12 @@ async function addHero() {
     document.getElementById("heroFile").value = "";
     document.getElementById("heroCaption").value = "";
 
-    toast("Hero uploaded");
+    toast("Uploaded");
     loadHero();
 }
 
 async function loadHero() {
-    const res = await api("/hero-slides");
-    const data = await res.json();
+    const data = await api("/hero-slides");
 
     document.getElementById("heroList").innerHTML = data.map(i => `
         <div>
@@ -121,8 +122,7 @@ async function addStaff() {
 }
 
 async function loadStaff() {
-    const res = await api("/staff-members");
-    const data = await res.json();
+    const data = await api("/staff-members");
 
     document.getElementById("staffList").innerHTML = data.map(i => `
         <div>
