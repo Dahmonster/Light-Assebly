@@ -331,4 +331,8 @@ async function start() {
     app.listen(PORT, () => console.log("Server running on " + PORT));
 }
 
+app.get("/", (req, res) => {
+    res.send("Light Assembly API is running 🚀");
+});
+
 start();
