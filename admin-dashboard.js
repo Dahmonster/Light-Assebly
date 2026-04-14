@@ -90,6 +90,7 @@ async function addHero() {
 
         toast("Hero added");
         loadHero();
+        loadDashboardCounts();
     } catch (e) { toast(e.message, "error"); }
 }
 
@@ -123,6 +124,7 @@ async function addStaff() {
 
         toast("Staff added");
         loadStaff();
+        loadDashboardCounts();
     } catch (e) { toast(e.message, "error"); }
 }
 
@@ -203,6 +205,7 @@ async function addEvent() {
 
         toast("Event added");
         loadEvents();
+        loadDashboardCounts();
     } catch (e) { toast(e.message, "error"); }
 }
 
@@ -231,6 +234,7 @@ async function addNews() {
 
         toast("News added");
         loadNews();
+        loadDashboardCounts();
     } catch (e) { toast(e.message, "error"); }
 }
 
@@ -277,6 +281,26 @@ async function loadMessages() {
 document.addEventListener("DOMContentLoaded", () => {
     setupMenu();
 
+    /* ================= DASHBOARD COUNTS ================= */
+async function loadDashboardCounts() {
+    try {
+        const [news, staff, events, messages] = await Promise.all([
+            api("/news"),
+            api("/staff-members"),
+            api("/events"),
+            api("/messages")
+        ]);
+
+        document.getElementById("newsCount").textContent = news.length;
+        document.getElementById("staffCount").textContent = staff.length;
+        document.getElementById("eventsCount").textContent = events.length;
+        document.getElementById("messagesCount").textContent = messages.length;
+
+    } catch (err) {
+        console.error("Dashboard count error:", err);
+    }
+}
+
     // NAV
     document.querySelectorAll(".nav-item").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -305,4 +329,5 @@ document.addEventListener("DOMContentLoaded", () => {
     loadEvents();
     loadNews();
     loadMessages();
+    loadDashboardCounts();
 });
