@@ -25,7 +25,11 @@ function toast(msg, type = "success") {
 
 /* ================= API ================= */
 async function api(url, options = {}) {
-    const token = localStorage.getItem("token"); // always fresh
+    const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token");
+
+    console.log("TOKEN:", token);
 
     const res = await fetch(API + url, {
         ...options,
@@ -35,24 +39,24 @@ async function api(url, options = {}) {
         }
     });
 
+    let data;
+    try {
+        data = await res.json();
+    } catch {
+        data = {};
+    }
+
+    // 🚨 NO AUTO LOGOUT ANYMORE
     if (res.status === 403) {
-        const err = await res.json().catch(() => ({}));
-
-        if (err.message === "Invalid token" || err.message === "No token") {
-            localStorage.removeItem("token");
-            window.location.href = "login.html";
-            return;
-        }
-
-        throw new Error(err.message || "Forbidden");
+        console.error("403 ERROR:", data);
+        throw new Error(data.message || "Forbidden");
     }
 
     if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Request failed");
+        throw new Error(data.message || "Request failed");
     }
 
-    return res.json();
+    return data;
 }
 
 /* ================= MENU ================= */
@@ -96,7 +100,6 @@ async function addHero() {
 
     } catch (err) {
         toast(err.message, "error");
-        console.error(err);
     }
 }
 
@@ -113,7 +116,7 @@ async function loadHero() {
             </div>
         `).join("");
 
-    } catch (err) {
+    } catch {
         toast("Failed to load hero", "error");
     }
 }
