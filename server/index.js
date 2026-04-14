@@ -25,30 +25,29 @@ app.use(express.static(path.join(__dirname, "../public")));
 const upload = multer({ storage: multer.memoryStorage() });
 
 // =====================
-// CLOUDINARY HELPERS
+// CLOUDINARY
 // =====================
 function uploadToCloudinary(buffer, folder) {
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
             { folder },
-            (error, result) => {
-                if (error) return reject(error);
+            (err, result) => {
+                if (err) return reject(err);
                 resolve(result);
             }
         );
-
         stream.end(buffer);
     });
 }
 
 async function safeUpload(file, folder) {
     if (!file) return null;
-    const result = await uploadToCloudinary(file.buffer, folder);
-    return result.secure_url;
+    const res = await uploadToCloudinary(file.buffer, folder);
+    return res.secure_url;
 }
 
 // =====================
-// INIT DB
+// DB INIT
 // =====================
 async function initDatabase() {
     db = await open({
@@ -57,11 +56,6 @@ async function initDatabase() {
     });
 
     await db.exec(`
-        CREATE TABLE IF NOT EXISTS background_images (
-            id INTEGER PRIMARY KEY,
-            url TEXT
-        );
-
         CREATE TABLE IF NOT EXISTS hero_slides (
             id INTEGER PRIMARY KEY,
             imageUrl TEXT,
@@ -69,18 +63,23 @@ async function initDatabase() {
             orderIndex INTEGER DEFAULT 0
         );
 
-        CREATE TABLE IF NOT EXISTS director_message (
-            id INTEGER PRIMARY KEY,
-            title TEXT,
-            message TEXT,
-            imageUrl TEXT
-        );
-
         CREATE TABLE IF NOT EXISTS staff_members (
             id INTEGER PRIMARY KEY,
             name TEXT,
             position TEXT,
             imageUrl TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS background_images (
+            id INTEGER PRIMARY KEY,
+            url TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS gallery_items (
+            id INTEGER PRIMARY KEY,
+            type TEXT,
+            url TEXT,
+            caption TEXT
         );
 
         CREATE TABLE IF NOT EXISTS news_posts (
@@ -102,13 +101,6 @@ async function initDatabase() {
             isUpcoming INTEGER DEFAULT 1
         );
 
-        CREATE TABLE IF NOT EXISTS gallery_items (
-            id INTEGER PRIMARY KEY,
-            type TEXT,
-            url TEXT,
-            caption TEXT
-        );
-
         CREATE TABLE IF NOT EXISTS contact_messages (
             id INTEGER PRIMARY KEY,
             name TEXT,
@@ -120,7 +112,6 @@ async function initDatabase() {
     `);
 }
 
-
 // =====================
 // AUTH
 // =====================
@@ -128,39 +119,35 @@ app.post("/api/auth/login", (req, res) => {
     const { username, password } = req.body;
 
     if (username === "admin" && password === "lightAdmin") {
-        return res.json({
-            success: true,
-            user: username
-        });
+        return res.json({ success: true, user: username });
     }
 
-    res.status(401).json({
-        success: false,
-        message: "Invalid credentials"
-    });
+    res.status(401).json({ success: false, message: "Invalid credentials" });
 });
+
 // =====================
-// HERO SLIDES
+// HERO
 // =====================
 app.post("/api/hero-slides", upload.single("image"), async (req, res) => {
-    try {
-        const { caption, orderIndex } = req.body;
+    const { caption } = req.body;
+    const imageUrl = await safeUpload(req.file, "hero");
 
-        const imageUrl = await safeUpload(req.file, "light-ministry/hero");
+    const result = await db.run(
+        "INSERT INTO hero_slides (imageUrl, caption) VALUES (?, ?)",
+        [imageUrl, caption]
+    );
 
-        const result = await db.run(
-            "INSERT INTO hero_slides (imageUrl, caption, orderIndex) VALUES (?, ?, ?)",
-            [imageUrl, caption || "", Number(orderIndex) || 0]
-        );
-
-        res.json({ id: result.lastID, imageUrl });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    res.json({ id: result.lastID });
 });
 
 app.get("/api/hero-slides", async (req, res) => {
-    res.json(await db.all("SELECT * FROM hero_slides ORDER BY orderIndex"));
+    res.json(await db.all("SELECT * FROM hero_slides"));
+});
+
+app.put("/api/hero-slides/:id", async (req, res) => {
+    const { caption } = req.body;
+    await db.run("UPDATE hero_slides SET caption=? WHERE id=?", [caption, req.params.id]);
+    res.json({ success: true });
 });
 
 app.delete("/api/hero-slides/:id", async (req, res) => {
@@ -172,24 +159,28 @@ app.delete("/api/hero-slides/:id", async (req, res) => {
 // STAFF
 // =====================
 app.post("/api/staff-members", upload.single("image"), async (req, res) => {
-    try {
-        const { name, position } = req.body;
+    const { name, position } = req.body;
+    const imageUrl = await safeUpload(req.file, "staff");
 
-        const imageUrl = await safeUpload(req.file, "light-ministry/staff");
+    const result = await db.run(
+        "INSERT INTO staff_members (name, position, imageUrl) VALUES (?, ?, ?)",
+        [name, position, imageUrl]
+    );
 
-        const result = await db.run(
-            "INSERT INTO staff_members (name, position, imageUrl) VALUES (?, ?, ?)",
-            [name, position, imageUrl]
-        );
-
-        res.json({ id: result.lastID, imageUrl });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    res.json({ id: result.lastID });
 });
 
 app.get("/api/staff-members", async (req, res) => {
     res.json(await db.all("SELECT * FROM staff_members"));
+});
+
+app.put("/api/staff-members/:id", async (req, res) => {
+    const { name, position } = req.body;
+    await db.run(
+        "UPDATE staff_members SET name=?, position=? WHERE id=?",
+        [name, position, req.params.id]
+    );
+    res.json({ success: true });
 });
 
 app.delete("/api/staff-members/:id", async (req, res) => {
@@ -201,18 +192,14 @@ app.delete("/api/staff-members/:id", async (req, res) => {
 // BACKGROUND
 // =====================
 app.post("/api/background-images", upload.single("image"), async (req, res) => {
-    try {
-        const url = await safeUpload(req.file, "light-ministry/backgrounds");
+    const url = await safeUpload(req.file, "background");
 
-        const result = await db.run(
-            "INSERT INTO background_images (url) VALUES (?)",
-            [url]
-        );
+    const result = await db.run(
+        "INSERT INTO background_images (url) VALUES (?)",
+        [url]
+    );
 
-        res.json({ id: result.lastID, url });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    res.json({ id: result.lastID });
 });
 
 app.get("/api/background-images", async (req, res) => {
@@ -228,26 +215,28 @@ app.delete("/api/background-images/:id", async (req, res) => {
 // GALLERY
 // =====================
 app.post("/api/gallery-items", upload.single("image"), async (req, res) => {
-    try {
-        const { type, caption, videoUrl } = req.body;
+    const { type, caption, videoUrl } = req.body;
 
-        let finalUrl = type === "image"
-            ? await safeUpload(req.file, "light-ministry/gallery")
-            : videoUrl;
+    let url = type === "image"
+        ? await safeUpload(req.file, "gallery")
+        : videoUrl;
 
-        const result = await db.run(
-            "INSERT INTO gallery_items (type, url, caption) VALUES (?, ?, ?)",
-            [type, finalUrl, caption || ""]
-        );
+    const result = await db.run(
+        "INSERT INTO gallery_items (type, url, caption) VALUES (?, ?, ?)",
+        [type, url, caption]
+    );
 
-        res.json({ id: result.lastID, url: finalUrl });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    res.json({ id: result.lastID });
 });
 
 app.get("/api/gallery-items", async (req, res) => {
     res.json(await db.all("SELECT * FROM gallery_items"));
+});
+
+app.put("/api/gallery-items/:id", async (req, res) => {
+    const { caption } = req.body;
+    await db.run("UPDATE gallery_items SET caption=? WHERE id=?", [caption, req.params.id]);
+    res.json({ success: true });
 });
 
 app.delete("/api/gallery-items/:id", async (req, res) => {
@@ -256,33 +245,43 @@ app.delete("/api/gallery-items/:id", async (req, res) => {
 });
 
 // =====================
-// EVENTS (FIXED + SAFE SORT)
+// NEWS
+// =====================
+app.post("/api/news-posts", upload.single("image"), async (req, res) => {
+    const { title, slug, previewText, content } = req.body;
+    const featuredImage = await safeUpload(req.file, "news");
+
+    const result = await db.run(
+        "INSERT INTO news_posts (title, slug, previewText, content, featuredImage) VALUES (?, ?, ?, ?, ?)",
+        [title, slug, previewText, content, featuredImage]
+    );
+
+    res.json({ id: result.lastID });
+});
+
+app.get("/api/news-posts", async (req, res) => {
+    res.json(await db.all("SELECT * FROM news_posts ORDER BY createdAt DESC"));
+});
+
+// =====================
+// EVENTS
 // =====================
 app.post("/api/events", upload.single("image"), async (req, res) => {
-    try {
-        const { title, description, eventDate, isUpcoming } = req.body;
+    const { title, description, eventDate } = req.body;
+    const imageUrl = await safeUpload(req.file, "events");
 
-        const imageUrl = await safeUpload(req.file, "light-ministry/events");
+    const result = await db.run(
+        "INSERT INTO events (title, description, eventDate, imageUrl) VALUES (?, ?, ?, ?)",
+        [title, description, eventDate, imageUrl]
+    );
 
-        const result = await db.run(
-            `INSERT INTO events (title, description, eventDate, imageUrl, isUpcoming)
-             VALUES (?, ?, ?, ?, ?)`,
-            [title, description, eventDate, imageUrl, isUpcoming ? 1 : 0]
-        );
-
-        res.json({ id: result.lastID, imageUrl });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    res.json({ id: result.lastID });
 });
 
 app.get("/api/events", async (req, res) => {
-    const events = await db.all("SELECT * FROM events");
-
-    // safer sorting (real date sorting)
-    events.sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
-
-    res.json(events);
+    const data = await db.all("SELECT * FROM events");
+    data.sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
+    res.json(data);
 });
 
 app.delete("/api/events/:id", async (req, res) => {
@@ -291,14 +290,7 @@ app.delete("/api/events/:id", async (req, res) => {
 });
 
 // =====================
-// NEWS
-// =====================
-app.get("/api/news-posts", async (req, res) => {
-    res.json(await db.all("SELECT * FROM news_posts ORDER BY createdAt DESC"));
-});
-
-// =====================
-// CONTACT MESSAGES
+// MESSAGES
 // =====================
 app.get("/api/contact-messages", async (req, res) => {
     res.json(await db.all("SELECT * FROM contact_messages ORDER BY id DESC"));
@@ -315,43 +307,9 @@ app.patch("/api/contact-messages/:id/read", async (req, res) => {
 });
 
 // =====================
-// DIRECTOR MESSAGE
-// =====================
-app.put("/api/director-message", async (req, res) => {
-    const { title, message, imageUrl } = req.body;
-
-    const existing = await db.get("SELECT id FROM director_message LIMIT 1");
-
-    if (existing) {
-        await db.run(
-            "UPDATE director_message SET title=?, message=?, imageUrl=? WHERE id=?",
-            [title, message, imageUrl, existing.id]
-        );
-    } else {
-        await db.run(
-            "INSERT INTO director_message (title, message, imageUrl) VALUES (?, ?, ?)",
-            [title, message, imageUrl]
-        );
-    }
-
-    res.json({ success: true });
-});
-
-app.get("/api/director-message", async (req, res) => {
-    res.json(await db.get("SELECT * FROM director_message LIMIT 1"));
-});
-
-// =====================
-// START
-// =====================
 async function start() {
     await initDatabase();
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log("Server running on " + PORT));
+    app.listen(5000, () => console.log("Server running on 5000"));
 }
-
-app.get("/", (req, res) => {
-    res.send("Light Assembly API is running 🚀");
-});
 
 start();
