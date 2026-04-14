@@ -120,6 +120,25 @@ async function initDatabase() {
     `);
 }
 
+
+// =====================
+// AUTH
+// =====================
+app.post("/api/auth/login", (req, res) => {
+    const { username, password } = req.body;
+
+    if (username === "admin" && password === "lightAdmin") {
+        return res.json({
+            success: true,
+            user: username
+        });
+    }
+
+    res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+    });
+});
 // =====================
 // HERO SLIDES
 // =====================
