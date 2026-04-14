@@ -10,7 +10,7 @@ function toast(msg, type = "success") {
         bottom: "20px",
         right: "20px",
         background: type === "success" ? "#28a745" : "#dc3545",
-        color: "white",
+        color: "#fff",
         padding: "12px 16px",
         borderRadius: "8px",
         zIndex: 99999
@@ -34,12 +34,8 @@ async function api(url, options = {}) {
         }
     });
 
-    let data;
-    try {
-        data = await res.json();
-    } catch {
-        data = {};
-    }
+    let data = {};
+    try { data = await res.json(); } catch {}
 
     if (!res.ok) {
         console.error("API ERROR:", data);
@@ -68,161 +64,82 @@ function switchSection(section) {
     document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
     document.getElementById(`${section}-section`)?.classList.add("active");
 
+    document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
+    document.querySelector(`[data-section="${section}"]`)?.classList.add("active");
+
     ({
         hero: loadHero,
         staff: loadStaff,
         background: loadBackground,
         gallery: loadGallery,
-        events: loadEvents
+        events: loadEvents,
+        news: loadNews,
+        messages: loadMessages
     })[section]?.();
 }
 
 /* ================= HERO ================= */
 async function addHero() {
     try {
-        const file = document.getElementById("heroFile")?.files[0];
-        const caption = document.getElementById("heroCaption")?.value;
-
-        if (!file) return toast("Select image", "error");
-
+        const file = heroFile.files[0];
         const form = new FormData();
         form.append("image", file);
-        form.append("caption", caption);
+        form.append("caption", heroCaption.value);
 
         await api("/hero-slides", { method: "POST", body: form });
 
-        toast("Hero uploaded");
+        toast("Hero added");
         loadHero();
-
-    } catch (err) {
-        toast(err.message, "error");
-    }
+    } catch (e) { toast(e.message, "error"); }
 }
 
 async function loadHero() {
-    try {
-        const data = await api("/hero-slides");
-
-        document.getElementById("heroList").innerHTML = data.map(i => `
-            <div>
-                <img src="${i.imageUrl}" width="100"/>
-                <input id="hero-${i.id}" value="${i.caption || ""}"/>
-                <button onclick="updateHero(${i.id})">Update</button>
-                <button onclick="deleteHero(${i.id})">Delete</button>
-            </div>
-        `).join("");
-
-    } catch {
-        toast("Failed to load hero", "error");
-    }
-}
-
-async function updateHero(id) {
-    try {
-        await api(`/hero-slides/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                caption: document.getElementById(`hero-${id}`).value
-            })
-        });
-
-        toast("Updated");
-        loadHero();
-
-    } catch (err) {
-        toast(err.message, "error");
-    }
+    const data = await api("/hero-slides");
+    heroList.innerHTML = data.map(i => `
+        <div>
+            <img src="${i.imageUrl}" width="100"/>
+            <button onclick="deleteHero(${i.id})">Delete</button>
+        </div>
+    `).join("");
 }
 
 async function deleteHero(id) {
-    try {
-        await api(`/hero-slides/${id}`, { method: "DELETE" });
-        toast("Deleted");
-        loadHero();
-    } catch (err) {
-        toast(err.message, "error");
-    }
+    await api(`/hero-slides/${id}`, { method: "DELETE" });
+    toast("Deleted");
+    loadHero();
 }
 
 /* ================= STAFF ================= */
 async function addStaff() {
     try {
-        const file = document.getElementById("staffFile")?.files[0];
-        const name = document.getElementById("staffName")?.value;
-        const position = document.getElementById("staffPosition")?.value;
-
-        if (!file || !name) return toast("Fill all fields", "error");
+        const file = staffFile.files[0];
 
         const form = new FormData();
         form.append("image", file);
-        form.append("name", name);
-        form.append("position", position);
+        form.append("name", staffName.value);
+        form.append("position", staffPosition.value);
 
         await api("/staff-members", { method: "POST", body: form });
 
         toast("Staff added");
         loadStaff();
-
-    } catch (err) {
-        toast(err.message, "error");
-    }
+    } catch (e) { toast(e.message, "error"); }
 }
 
 async function loadStaff() {
-    try {
-        const data = await api("/staff-members");
-
-        document.getElementById("staffList").innerHTML = data.map(i => `
-            <div>
-                <img src="${i.imageUrl}" width="80"/>
-                <input id="staff-name-${i.id}" value="${i.name}"/>
-                <input id="staff-position-${i.id}" value="${i.position}"/>
-                <button onclick="updateStaff(${i.id})">Update</button>
-                <button onclick="deleteStaff(${i.id})">Delete</button>
-            </div>
-        `).join("");
-
-    } catch {
-        toast("Failed to load staff", "error");
-    }
-}
-
-async function updateStaff(id) {
-    try {
-        await api(`/staff-members/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                name: document.getElementById(`staff-name-${id}`).value,
-                position: document.getElementById(`staff-position-${id}`).value
-            })
-        });
-
-        toast("Updated");
-        loadStaff();
-
-    } catch (err) {
-        toast(err.message, "error");
-    }
-}
-
-async function deleteStaff(id) {
-    try {
-        await api(`/staff-members/${id}`, { method: "DELETE" });
-        toast("Deleted");
-        loadStaff();
-    } catch (err) {
-        toast(err.message, "error");
-    }
+    const data = await api("/staff-members");
+    staffList.innerHTML = data.map(i => `
+        <div>
+            <img src="${i.imageUrl}" width="80"/>
+            <p>${i.name} - ${i.position}</p>
+        </div>
+    `).join("");
 }
 
 /* ================= BACKGROUND ================= */
 async function addBackground() {
     try {
-        const file = document.getElementById("bgFile")?.files[0];
-        if (!file) return toast("Select image", "error");
-
+        const file = bgFile.files[0];
         const form = new FormData();
         form.append("image", file);
 
@@ -230,183 +147,117 @@ async function addBackground() {
 
         toast("Uploaded");
         loadBackground();
-
-    } catch (err) {
-        toast(err.message, "error");
-    }
+    } catch (e) { toast(e.message, "error"); }
 }
 
 async function loadBackground() {
-    try {
-        const data = await api("/background-images");
-
-        document.getElementById("backgroundList").innerHTML = data.map(i => `
-            <div>
-                <img src="${i.url}" width="120"/>
-                <button onclick="deleteBackground(${i.id})">Delete</button>
-            </div>
-        `).join("");
-
-    } catch {
-        toast("Failed to load background", "error");
-    }
-}
-
-async function deleteBackground(id) {
-    try {
-        await api(`/background-images/${id}`, { method: "DELETE" });
-        toast("Deleted");
-        loadBackground();
-    } catch (err) {
-        toast(err.message, "error");
-    }
+    const data = await api("/background-images");
+    backgroundList.innerHTML = data.map(i => `
+        <img src="${i.url}" width="100"/>
+    `).join("");
 }
 
 /* ================= GALLERY ================= */
 async function addGallery() {
     try {
-        const file = document.getElementById("galleryFile")?.files[0];
-        const type = document.getElementById("galleryType")?.value;
-        const caption = document.getElementById("galleryCaption")?.value;
-        const videoUrl = document.getElementById("galleryVideoUrl")?.value;
-
-        if (type === "image" && !file) return toast("Select image", "error");
-        if (type === "video" && !videoUrl) return toast("Enter video URL", "error");
+        const type = galleryType.value;
+        const file = galleryFile.files[0];
 
         const form = new FormData();
         form.append("type", type);
-        form.append("caption", caption);
+        form.append("caption", galleryCaption.value);
 
-        if (type === "video") form.append("url", videoUrl);
+        if (type === "video") form.append("url", galleryVideoUrl.value);
         else form.append("image", file);
 
         await api("/gallery-items", { method: "POST", body: form });
 
         toast("Gallery added");
         loadGallery();
-
-    } catch (err) {
-        toast(err.message, "error");
-    }
+    } catch (e) { toast(e.message, "error"); }
 }
 
 async function loadGallery() {
-    try {
-        const data = await api("/gallery-items");
-
-        document.getElementById("galleryList").innerHTML = data.map(i => `
-            <div>
-                ${
-                    i.type === "video"
-                        ? `<a href="${i.url}" target="_blank">▶ Video</a>`
-                        : `<img src="${i.url}" width="100"/>`
-                }
-                <input id="gallery-${i.id}" value="${i.caption || ""}"/>
-                <button onclick="updateGallery(${i.id})">Update</button>
-                <button onclick="deleteGallery(${i.id})">Delete</button>
-            </div>
-        `).join("");
-
-    } catch {
-        toast("Failed to load gallery", "error");
-    }
-}
-
-async function updateGallery(id) {
-    try {
-        await api(`/gallery-items/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                caption: document.getElementById(`gallery-${id}`).value
-            })
-        });
-
-        toast("Updated");
-        loadGallery();
-
-    } catch (err) {
-        toast(err.message, "error");
-    }
-}
-
-async function deleteGallery(id) {
-    try {
-        await api(`/gallery-items/${id}`, { method: "DELETE" });
-        toast("Deleted");
-        loadGallery();
-    } catch (err) {
-        toast(err.message, "error");
-    }
+    const data = await api("/gallery-items");
+    galleryList.innerHTML = data.map(i => `
+        <div>
+            ${i.type === "video"
+                ? `<a href="${i.url}" target="_blank">Video</a>`
+                : `<img src="${i.url}" width="100"/>`}
+        </div>
+    `).join("");
 }
 
 /* ================= EVENTS ================= */
 async function addEvent() {
     try {
-        const title = document.getElementById("eventTitle")?.value;
-        const description = document.getElementById("eventDescription")?.value;
-        const eventDate = document.getElementById("eventDate")?.value;
-
-        if (!title) return toast("Enter title", "error");
-
         await api("/events", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title, description, eventDate })
+            body: JSON.stringify({
+                title: eventTitle.value,
+                description: eventDescription.value,
+                eventDate: eventDate.value
+            })
         });
 
         toast("Event added");
         loadEvents();
-
-    } catch (err) {
-        toast(err.message, "error");
-    }
+    } catch (e) { toast(e.message, "error"); }
 }
 
 async function loadEvents() {
-    try {
-        const data = await api("/events");
+    const data = await api("/events");
+    eventsList.innerHTML = data.map(i => `
+        <div>
+            <p>${i.title}</p>
+        </div>
+    `).join("");
+}
 
-        document.getElementById("eventsList").innerHTML = data.map(i => `
+/* ================= NEWS ================= */
+async function addNews() {
+    try {
+        const file = newsFile.files[0];
+
+        const form = new FormData();
+        form.append("title", newsTitle.value);
+        form.append("slug", newsSlug.value);
+        form.append("preview", newsPreviewText.value);
+        form.append("content", newsContent.value);
+        form.append("image", file);
+
+        await api("/news", { method: "POST", body: form });
+
+        toast("News added");
+        loadNews();
+    } catch (e) { toast(e.message, "error"); }
+}
+
+async function loadNews() {
+    const data = await api("/news");
+    newsList.innerHTML = data.map(i => `
+        <div>
+            <img src="${i.imageUrl}" width="80"/>
+            <p>${i.title}</p>
+        </div>
+    `).join("");
+}
+
+/* ================= MESSAGES ================= */
+async function loadMessages() {
+    try {
+        const data = await api("/messages");
+
+        messagesList.innerHTML = data.map(i => `
             <div>
-                <input id="event-${i.id}" value="${i.title}"/>
-                <textarea id="event-desc-${i.id}">${i.description}</textarea>
-                <button onclick="updateEvent(${i.id})">Update</button>
-                <button onclick="deleteEvent(${i.id})">Delete</button>
+                <b>${i.name}</b>
+                <p>${i.message}</p>
             </div>
         `).join("");
 
     } catch {
-        toast("Failed to load events", "error");
-    }
-}
-
-async function updateEvent(id) {
-    try {
-        await api(`/events/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                title: document.getElementById(`event-${id}`).value,
-                description: document.getElementById(`event-desc-${id}`).value
-            })
-        });
-
-        toast("Updated");
-        loadEvents();
-
-    } catch (err) {
-        toast(err.message, "error");
-    }
-}
-
-async function deleteEvent(id) {
-    try {
-        await api(`/events/${id}`, { method: "DELETE" });
-        toast("Deleted");
-        loadEvents();
-    } catch (err) {
-        toast(err.message, "error");
+        toast("Failed to load messages", "error");
     }
 }
 
@@ -414,15 +265,32 @@ async function deleteEvent(id) {
 document.addEventListener("DOMContentLoaded", () => {
     setupMenu();
 
-    document.getElementById("addHeroBtn")?.addEventListener("click", addHero);
-    document.getElementById("addStaffBtn")?.addEventListener("click", addStaff);
-    document.getElementById("addBgBtn")?.addEventListener("click", addBackground);
-    document.getElementById("addGalleryBtn")?.addEventListener("click", addGallery);
-    document.getElementById("addEventBtn")?.addEventListener("click", addEvent);
+    // NAV
+    document.querySelectorAll(".nav-item").forEach(btn => {
+        btn.addEventListener("click", () => {
+            if (btn.dataset.section) {
+                switchSection(btn.dataset.section);
+            }
+        });
+    });
 
+    // BUTTONS
+    addHeroBtn.onclick = addHero;
+    addStaffBtn.onclick = addStaff;
+    addBgBtn.onclick = addBackground;
+    addGalleryBtn.onclick = addGallery;
+    addEventBtn.onclick = addEvent;
+    addNewsBtn.onclick = addNews;
+
+    // LOGOUT
+    logoutBtn.onclick = logout;
+
+    // LOAD
     loadHero();
     loadStaff();
     loadBackground();
     loadGallery();
     loadEvents();
+    loadNews();
+    loadMessages();
 });
