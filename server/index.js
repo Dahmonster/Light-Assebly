@@ -73,17 +73,10 @@ async function initDB() {
             id INTEGER PRIMARY KEY,
             url TEXT
         );
-
-        CREATE TABLE IF NOT EXISTS gallery_items (
-            id INTEGER PRIMARY KEY,
-            type TEXT,
-            url TEXT,
-            caption TEXT
-        );
     `);
 }
 
-/* ================= AUTH LOGIN ================= */
+/* ================= AUTH ================= */
 app.post("/api/auth/login", (req, res) => {
     const { username, password } = req.body;
 
@@ -92,14 +85,10 @@ app.post("/api/auth/login", (req, res) => {
             expiresIn: "2h"
         });
 
-        return res.json({
-            success: true,
-            token,
-            user: "admin"
-        });
+        return res.json({ success: true, token });
     }
 
-    return res.status(401).json({ success: false, message: "Invalid login" });
+    return res.status(401).json({ success: false });
 });
 
 /* ================= AUTH MIDDLEWARE ================= */
@@ -130,7 +119,7 @@ app.post("/api/hero-slides", auth, upload.single("image"), async (req, res) => {
 });
 
 app.get("/api/hero-slides", async (req, res) => {
-    res.json(await db.all("SELECT * FROM hero_slides"));
+    res.json(await db.all("SELECT * FROM hero_slides ORDER BY id DESC"));
 });
 
 app.delete("/api/hero-slides/:id", auth, async (req, res) => {
@@ -175,12 +164,11 @@ app.get("/api/background-images", async (req, res) => {
     res.json(await db.all("SELECT * FROM background_images"));
 });
 
-/* ================= ROOT ================= */
+/* ================= START ================= */
 app.get("/", (req, res) => {
     res.send("CMS API Running 🚀");
 });
 
-/* ================= START ================= */
 async function start() {
     await initDB();
     const PORT = process.env.PORT || 5000;
