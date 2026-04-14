@@ -45,6 +45,26 @@ async function api(url, options = {}) {
     return data;
 }
 
+/* ================= DASHBOARD COUNTS ================= */
+async function loadDashboardCounts() {
+    try {
+        const [news, staff, events, messages] = await Promise.all([
+            api("/news"),
+            api("/staff-members"),
+            api("/events"),
+            api("/messages")
+        ]);
+
+        document.getElementById("newsCount").textContent = news.length;
+        document.getElementById("staffCount").textContent = staff.length;
+        document.getElementById("eventsCount").textContent = events.length;
+        document.getElementById("messagesCount").textContent = messages.length;
+
+    } catch (err) {
+        console.error("Dashboard count error:", err);
+    }
+}
+
 /* ================= LOGOUT ================= */
 function logout() {
     localStorage.removeItem("token");
@@ -82,6 +102,7 @@ function switchSection(section) {
 async function addHero() {
     try {
         const file = heroFile.files[0];
+
         const form = new FormData();
         form.append("image", file);
         form.append("caption", heroCaption.value);
@@ -91,11 +112,13 @@ async function addHero() {
         toast("Hero added");
         loadHero();
         loadDashboardCounts();
+
     } catch (e) { toast(e.message, "error"); }
 }
 
 async function loadHero() {
     const data = await api("/hero-slides");
+
     heroList.innerHTML = data.map(i => `
         <div>
             <img src="${i.imageUrl}" width="100"/>
@@ -108,6 +131,7 @@ async function deleteHero(id) {
     await api(`/hero-slides/${id}`, { method: "DELETE" });
     toast("Deleted");
     loadHero();
+    loadDashboardCounts();
 }
 
 /* ================= STAFF ================= */
@@ -125,11 +149,13 @@ async function addStaff() {
         toast("Staff added");
         loadStaff();
         loadDashboardCounts();
+
     } catch (e) { toast(e.message, "error"); }
 }
 
 async function loadStaff() {
     const data = await api("/staff-members");
+
     staffList.innerHTML = data.map(i => `
         <div>
             <img src="${i.imageUrl}" width="80"/>
@@ -142,6 +168,7 @@ async function loadStaff() {
 async function addBackground() {
     try {
         const file = bgFile.files[0];
+
         const form = new FormData();
         form.append("image", file);
 
@@ -149,11 +176,13 @@ async function addBackground() {
 
         toast("Uploaded");
         loadBackground();
+
     } catch (e) { toast(e.message, "error"); }
 }
 
 async function loadBackground() {
     const data = await api("/background-images");
+
     backgroundList.innerHTML = data.map(i => `
         <img src="${i.url}" width="100"/>
     `).join("");
@@ -176,11 +205,13 @@ async function addGallery() {
 
         toast("Gallery added");
         loadGallery();
+
     } catch (e) { toast(e.message, "error"); }
 }
 
 async function loadGallery() {
     const data = await api("/gallery-items");
+
     galleryList.innerHTML = data.map(i => `
         <div>
             ${i.type === "video"
@@ -206,11 +237,13 @@ async function addEvent() {
         toast("Event added");
         loadEvents();
         loadDashboardCounts();
+
     } catch (e) { toast(e.message, "error"); }
 }
 
 async function loadEvents() {
     const data = await api("/events");
+
     eventsList.innerHTML = data.map(i => `
         <div>
             <p>${i.title}</p>
@@ -235,11 +268,13 @@ async function addNews() {
         toast("News added");
         loadNews();
         loadDashboardCounts();
+
     } catch (e) { toast(e.message, "error"); }
 }
 
 async function loadNews() {
     const data = await api("/news");
+
     newsList.innerHTML = data.map(i => `
         <div>
             <img src="${i.imageUrl}" width="80"/>
@@ -280,26 +315,6 @@ async function loadMessages() {
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", () => {
     setupMenu();
-
-    /* ================= DASHBOARD COUNTS ================= */
-async function loadDashboardCounts() {
-    try {
-        const [news, staff, events, messages] = await Promise.all([
-            api("/news"),
-            api("/staff-members"),
-            api("/events"),
-            api("/messages")
-        ]);
-
-        document.getElementById("newsCount").textContent = news.length;
-        document.getElementById("staffCount").textContent = staff.length;
-        document.getElementById("eventsCount").textContent = events.length;
-        document.getElementById("messagesCount").textContent = messages.length;
-
-    } catch (err) {
-        console.error("Dashboard count error:", err);
-    }
-}
 
     // NAV
     document.querySelectorAll(".nav-item").forEach(btn => {
