@@ -110,6 +110,7 @@ async function initDB() {
             id INTEGER PRIMARY KEY,
             name TEXT,
             email TEXT,
+            subject TEXT,
             message TEXT
         );
     `);
@@ -232,6 +233,30 @@ app.get("/api/news", async (req, res) => {
 });
 
 /* ================= MESSAGES ================= */
+app.get("/api/messages", auth, async (req, res) => {
+    res.json(await db.all("SELECT * FROM messages"));
+});
+
+
+// SAVE message (FROM CONTACT FORM)
+app.post("/api/contact-messages", async (req, res) => {
+    try {
+        const { name, email, subject, message } = req.body;
+
+        await db.run(
+            "INSERT INTO messages (name, email, subject, message) VALUES (?,?,?,?)",
+            [name, email, subject, message]
+        );
+
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("Message error:", err);
+        res.status(500).json({ message: "Failed to send message" });
+    }
+});
+
+// ADMIN FETCH messages
 app.get("/api/messages", auth, async (req, res) => {
     res.json(await db.all("SELECT * FROM messages"));
 });
