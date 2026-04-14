@@ -96,19 +96,11 @@ async function addHero() {
     const file = document.getElementById("heroFile").files[0];
     const caption = document.getElementById("heroCaption").value;
 
-    if (!file) return toast("Select image", "error");
-
     const form = new FormData();
     form.append("image", file);
     form.append("caption", caption);
 
-    await api("/hero-slides", {
-        method: "POST",
-        body: form
-    });
-
-    document.getElementById("heroFile").value = "";
-    document.getElementById("heroCaption").value = "";
+    await api("/hero-slides", { method: "POST", body: form });
 
     toast("Hero uploaded");
     loadHero();
@@ -157,14 +149,7 @@ async function addStaff() {
     form.append("name", name);
     form.append("position", position);
 
-    await api("/staff-members", {
-        method: "POST",
-        body: form
-    });
-
-    document.getElementById("staffFile").value = "";
-    document.getElementById("staffName").value = "";
-    document.getElementById("staffPosition").value = "";
+    await api("/staff-members", { method: "POST", body: form });
 
     toast("Staff added");
     loadStaff();
@@ -208,17 +193,12 @@ async function deleteStaff(id) {
 /* ================= BACKGROUND ================= */
 async function addBackground() {
     const file = document.getElementById("bgFile").files[0];
-    if (!file) return toast("Select image", "error");
 
     const form = new FormData();
     form.append("image", file);
 
-    await api("/background-images", {
-        method: "POST",
-        body: form
-    });
+    await api("/background-images", { method: "POST", body: form });
 
-    document.getElementById("bgFile").value = "";
     toast("Uploaded");
     loadBackground();
 }
@@ -241,6 +221,21 @@ async function deleteBackground(id) {
 }
 
 /* ================= GALLERY ================= */
+async function addGallery() {
+    const file = document.getElementById("galleryFile").files[0];
+    const caption = document.getElementById("galleryCaption").value;
+
+    const form = new FormData();
+    form.append("image", file);
+    form.append("caption", caption);
+    form.append("type", "image");
+
+    await api("/gallery-items", { method: "POST", body: form });
+
+    toast("Added");
+    loadGallery();
+}
+
 async function loadGallery() {
     const data = await api("/gallery-items");
 
@@ -274,12 +269,26 @@ async function deleteGallery(id) {
 }
 
 /* ================= EVENTS ================= */
+async function addEvent() {
+    const title = document.getElementById("eventTitle").value;
+    const description = document.getElementById("eventDescription").value;
+    const eventDate = document.getElementById("eventDate").value;
+
+    await api("/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, eventDate })
+    });
+
+    toast("Event added");
+    loadEvents();
+}
+
 async function loadEvents() {
     const data = await api("/events");
 
     document.getElementById("eventsList").innerHTML = data.map(i => `
         <div>
-            <h4>${i.title}</h4>
             <input id="event-title-${i.id}" value="${i.title}"/>
             <textarea id="event-desc-${i.id}">${i.description}</textarea>
 
@@ -309,7 +318,7 @@ async function deleteEvent(id) {
     loadEvents();
 }
 
-/* ================= INIT ================= */
+/* ================= INIT (CRITICAL FIX) ================= */
 document.addEventListener("DOMContentLoaded", () => {
     setupMenu();
 
@@ -323,8 +332,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("addHeroBtn")?.addEventListener("click", addHero);
     document.getElementById("addStaffBtn")?.addEventListener("click", addStaff);
     document.getElementById("addBgBtn")?.addEventListener("click", addBackground);
+    document.getElementById("addGalleryBtn")?.addEventListener("click", addGallery);
+    document.getElementById("addEventBtn")?.addEventListener("click", addEvent);
 
     loadHero();
     loadStaff();
     loadBackground();
+    loadGallery();
+    loadEvents();
 });
