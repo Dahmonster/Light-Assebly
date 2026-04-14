@@ -13,13 +13,28 @@ async function loadNews() {
 
     } catch (err) {
         console.error(err);
-        document.getElementById('newsListView').innerHTML =
-            '<p>Failed to load news</p>';
+        const el = document.getElementById('newsListView');
+        if (el) el.innerHTML = '<p>Failed to load news</p>';
     }
 }
 
+
 /***********************
- * RENDER LIST
+ * HANDLE CLICK (FIX)
+ ***********************/
+function handleNewsClick(e, slug) {
+    e.preventDefault();
+
+    // update URL without reload
+    window.history.pushState({}, "", `?slug=${slug}`);
+
+    // render article
+    renderNewsDetail(slug);
+}
+
+
+/***********************
+ * RENDER LIST (FIXED)
  ***********************/
 function renderNewsList() {
     const listView = document.getElementById('newsListView');
@@ -32,7 +47,9 @@ function renderNewsList() {
     }
 
     listView.innerHTML = allNews.map(post => `
-        <a href="?slug=${post.slug}" class="news-list-card">
+        <a href="?slug=${post.slug}" 
+           class="news-list-card" 
+           onclick="handleNewsClick(event, '${post.slug}')">
 
             ${post.imageUrl
                 ? `<img src="${post.imageUrl}" class="news-list-image">`
@@ -53,14 +70,21 @@ function renderNewsList() {
     `).join('');
 }
 
+
 /***********************
- * RENDER SINGLE ARTICLE
+ * RENDER SINGLE ARTICLE (FIXED)
  ***********************/
-function renderNewsDetail(slug) {
+async function renderNewsDetail(slug) {
     const listView = document.getElementById('newsListView');
     const detailView = document.getElementById('newsDetailView');
 
     if (!detailView || !listView) return;
+
+    // ensure data exists (important for refresh/direct link)
+    if (!allNews.length) {
+        allNews = await fetch('https://light-assembly.onrender.com/api/news')
+            .then(res => res.json());
+    }
 
     const article = allNews.find(n => n.slug === slug);
 
@@ -90,7 +114,11 @@ function renderNewsDetail(slug) {
 
         </article>
     `;
+
+    // scroll to top
+    window.scrollTo(0, 0);
 }
+
 
 /***********************
  * SLUG CHECK
@@ -103,6 +131,7 @@ function checkSlugParam() {
         renderNewsDetail(slug);
     }
 }
+
 
 /***********************
  * INIT
