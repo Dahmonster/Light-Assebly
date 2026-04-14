@@ -1,14 +1,21 @@
-// News Page Functionality (FIXED + CLOUDINARY SAFE)
-
 let allNews = [];
 
 /***********************
  * LOAD NEWS LIST
  ***********************/
 async function loadNews() {
-    allNews = await Utils.fetchAPI('/news-posts') || [];
-    renderNewsList();
-    checkSlugParam();
+    try {
+        allNews = await fetch('https://light-assembly.onrender.com/api/news')
+            .then(res => res.json());
+
+        renderNewsList();
+        checkSlugParam();
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById('newsListView').innerHTML =
+            '<p>Failed to load news</p>';
+    }
 }
 
 /***********************
@@ -26,20 +33,18 @@ function renderNewsList() {
 
     listView.innerHTML = allNews.map(post => `
         <a href="?slug=${post.slug}" class="news-list-card">
-            ${post.featuredImage
-                ? `<img src="${post.featuredImage}" alt="${post.title}" class="news-list-image">`
+
+            ${post.imageUrl
+                ? `<img src="${post.imageUrl}" class="news-list-image">`
                 : ''
             }
 
             <div class="news-list-body">
-                <div class="news-list-date">
-                    ${post.createdAt ? Utils.formatDate(post.createdAt) : ''}
-                </div>
 
                 <h3 class="news-list-title">${post.title}</h3>
 
                 <p class="news-list-excerpt">
-                    ${post.previewText || ''}
+                    ${post.preview || ''}
                 </p>
 
                 <div class="news-list-link">Read More →</div>
@@ -51,16 +56,11 @@ function renderNewsList() {
 /***********************
  * RENDER SINGLE ARTICLE
  ***********************/
-async function renderNewsDetail(slug) {
+function renderNewsDetail(slug) {
     const listView = document.getElementById('newsListView');
     const detailView = document.getElementById('newsDetailView');
 
     if (!detailView || !listView) return;
-
-    // 🔥 FIX: if data not loaded yet, fetch again
-    if (!allNews.length) {
-        allNews = await Utils.fetchAPI('/news-posts') || [];
-    }
 
     const article = allNews.find(n => n.slug === slug);
 
@@ -73,38 +73,23 @@ async function renderNewsDetail(slug) {
     detailView.style.display = 'block';
 
     detailView.innerHTML = `
-        <a href="news.html" class="back-button">← Back to Sermons</a>
+        <a href="news.html">← Back</a>
 
-        <article class="news-article">
+        <article>
 
-            ${article.featuredImage
-                ? `<img src="${article.featuredImage}" alt="${article.title}" class="article-image">`
+            ${article.imageUrl
+                ? `<img src="${article.imageUrl}" class="article-image">`
                 : ''
             }
 
-            <div class="article-content">
+            <h1>${article.title}</h1>
 
-                <div class="article-meta">
-                    <span class="article-date">
-                        📅 ${article.createdAt ? Utils.formatDate(article.createdAt) : ''}
-                    </span>
-                </div>
-
-                <h1 class="article-title">${article.title}</h1>
-
-                <div class="article-body">
-                    ${article.content || ''}
-                </div>
-
-                <div class="article-footer">
-                    <a href="news.html" class="back-button">← Back to All Sermons</a>
-                </div>
-
+            <div>
+                ${article.content || ''}
             </div>
+
         </article>
     `;
-
-    window.scrollTo(0, 0);
 }
 
 /***********************
@@ -122,10 +107,6 @@ function checkSlugParam() {
 /***********************
  * INIT
  ***********************/
-document.addEventListener('DOMContentLoaded', () => {
-    loadNews();
-});
+document.addEventListener('DOMContentLoaded', loadNews);
 
-window.addEventListener('popstate', () => {
-    checkSlugParam();
-});
+window.addEventListener('popstate', checkSlugParam);
