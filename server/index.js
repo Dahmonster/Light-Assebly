@@ -28,6 +28,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../public")));
 
+/* ================= ROOT FIX (Render) ================= */
+app.get("/", (req, res) => {
+    res.send("API is running...");
+});
+
 /* ================= CLOUDINARY ================= */
 function uploadToCloudinary(buffer, folder) {
     return new Promise((resolve, reject) => {
@@ -109,7 +114,8 @@ function auth(req, res, next) {
 
     try {
         const token = header.split(" ")[1];
-        jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
         next();
     } catch {
         res.status(403).json({ message: "Invalid token" });
@@ -118,14 +124,20 @@ function auth(req, res, next) {
 
 /* ================= HERO ================= */
 app.post("/api/hero-slides", auth, upload.single("image"), async (req, res) => {
-    const imageUrl = await safeUpload(req.file, "hero");
+    try {
+        const imageUrl = await safeUpload(req.file, "hero");
 
-    const result = await db.run(
-        "INSERT INTO hero_slides (imageUrl, caption) VALUES (?,?)",
-        [imageUrl, req.body.caption || ""]
-    );
+        const result = await db.run(
+            "INSERT INTO hero_slides (imageUrl, caption) VALUES (?,?)",
+            [imageUrl, req.body.caption || ""]
+        );
 
-    res.json({ success: true, id: result.lastID });
+        res.json({ success: true, id: result.lastID });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Upload failed" });
+    }
 });
 
 app.get("/api/hero-slides", async (req, res) => {
@@ -147,14 +159,20 @@ app.delete("/api/hero-slides/:id", auth, async (req, res) => {
 
 /* ================= STAFF ================= */
 app.post("/api/staff-members", auth, upload.single("image"), async (req, res) => {
-    const imageUrl = await safeUpload(req.file, "staff");
+    try {
+        const imageUrl = await safeUpload(req.file, "staff");
 
-    const result = await db.run(
-        "INSERT INTO staff_members (name, position, imageUrl) VALUES (?,?,?)",
-        [req.body.name, req.body.position, imageUrl]
-    );
+        const result = await db.run(
+            "INSERT INTO staff_members (name, position, imageUrl) VALUES (?,?,?)",
+            [req.body.name, req.body.position, imageUrl]
+        );
 
-    res.json({ success: true, id: result.lastID });
+        res.json({ success: true, id: result.lastID });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Upload failed" });
+    }
 });
 
 app.get("/api/staff-members", async (req, res) => {
@@ -176,14 +194,20 @@ app.delete("/api/staff-members/:id", auth, async (req, res) => {
 
 /* ================= BACKGROUND ================= */
 app.post("/api/background-images", auth, upload.single("image"), async (req, res) => {
-    const url = await safeUpload(req.file, "background");
+    try {
+        const url = await safeUpload(req.file, "background");
 
-    const result = await db.run(
-        "INSERT INTO background_images (url) VALUES (?)",
-        [url]
-    );
+        const result = await db.run(
+            "INSERT INTO background_images (url) VALUES (?)",
+            [url]
+        );
 
-    res.json({ success: true, id: result.lastID });
+        res.json({ success: true, id: result.lastID });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Upload failed" });
+    }
 });
 
 app.get("/api/background-images", async (req, res) => {
@@ -197,17 +221,23 @@ app.delete("/api/background-images/:id", auth, async (req, res) => {
 
 /* ================= GALLERY ================= */
 app.post("/api/gallery-items", auth, upload.single("image"), async (req, res) => {
-    const url =
-        req.body.type === "video"
-            ? req.body.url
-            : await safeUpload(req.file, "gallery");
+    try {
+        const url =
+            req.body.type === "video"
+                ? req.body.url
+                : await safeUpload(req.file, "gallery");
 
-    const result = await db.run(
-        "INSERT INTO gallery_items (type, url, caption) VALUES (?,?,?)",
-        [req.body.type, url, req.body.caption || ""]
-    );
+        const result = await db.run(
+            "INSERT INTO gallery_items (type, url, caption) VALUES (?,?,?)",
+            [req.body.type, url, req.body.caption || ""]
+        );
 
-    res.json({ success: true, id: result.lastID });
+        res.json({ success: true, id: result.lastID });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Upload failed" });
+    }
 });
 
 app.get("/api/gallery-items", async (req, res) => {
