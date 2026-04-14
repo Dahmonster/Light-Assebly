@@ -1,65 +1,62 @@
-const API_BASE = "https://light-assembly.onrender.com/api";
+const API = "https://light-assembly.onrender.com/api";
 
-// =====================
-// TOAST
-// =====================
+let token = localStorage.getItem("token");
+
+/* ================= TOAST ================= */
 function toast(msg, type = "success") {
-    const div = document.createElement("div");
-    div.textContent = msg;
-    div.style.position = "fixed";
-    div.style.bottom = "20px";
-    div.style.right = "20px";
-    div.style.padding = "10px 15px";
-    div.style.background = type === "success" ? "green" : "red";
-    div.style.color = "white";
-    div.style.borderRadius = "6px";
-    div.style.zIndex = "9999";
-    document.body.appendChild(div);
+    const el = document.createElement("div");
 
-    setTimeout(() => div.remove(), 3000);
+    el.textContent = msg;
+    el.style.position = "fixed";
+    el.style.bottom = "20px";
+    el.style.right = "20px";
+    el.style.padding = "12px";
+    el.style.background = type === "success" ? "green" : "red";
+    el.style.color = "white";
+    el.style.borderRadius = "8px";
+    el.style.zIndex = 9999;
+
+    document.body.appendChild(el);
+
+    setTimeout(() => el.remove(), 3000);
 }
 
-// =====================
-// API
-// =====================
+/* ================= FETCH WRAPPER ================= */
 async function api(url, options = {}) {
-    const res = await fetch(API_BASE + url, {
+    return fetch(API + url, {
         ...options,
-        headers: options.body instanceof FormData
-            ? {}
-            : { "Content-Type": "application/json" }
+        headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+            ...options.headers
+        }
+    });
+}
+
+/* ================= LOGIN ================= */
+async function login(e) {
+    e.preventDefault();
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    const res = await fetch(API + "/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
     });
 
-    if (!res.ok) throw new Error("Request failed");
-    return res.json();
+    const data = await res.json();
+
+    if (data.token) {
+        localStorage.setItem("token", data.token);
+        toast("Login successful");
+        window.location.href = "dashboard.html";
+    } else {
+        toast("Login failed", "error");
+    }
 }
 
-// =====================
-// AUTH
-// =====================
-function checkAuth() {
-    const user = localStorage.getItem("adminUser");
-    if (!user) window.location.href = "login.html";
-
-    document.getElementById("userName").textContent = user;
-}
-
-// =====================
-// LOADERS
-// =====================
-async function loadHero() {
-    const data = await api("/hero-slides");
-
-    document.getElementById("heroList").innerHTML = data.map(i => `
-        <div class="item-card">
-            <img src="${i.imageUrl}" width="100"/>
-            <input value="${i.caption}" id="cap-${i.id}" />
-            <button onclick="updateHero(${i.id})">Update</button>
-            <button onclick="deleteHero(${i.id})">Delete</button>
-        </div>
-    `).join("");
-}
-
+/* ================= HERO ================= */
 async function addHero() {
     const file = document.getElementById("heroFile").files[0];
     const caption = document.getElementById("heroCaption").value;
@@ -68,25 +65,29 @@ async function addHero() {
     form.append("image", file);
     form.append("caption", caption);
 
-    await fetch(API_BASE + "/hero-slides", { method: "POST", body: form });
+    await api("/hero-slides", {
+        method: "POST",
+        body: form
+    });
 
     document.getElementById("heroFile").value = "";
     document.getElementById("heroCaption").value = "";
 
-    toast("Hero added");
+    toast("Hero uploaded");
     loadHero();
 }
 
-async function updateHero(id) {
-    const caption = document.getElementById(`cap-${id}`).value;
+async function loadHero() {
+    const res = await api("/hero-slides");
+    const data = await res.json();
 
-    await api(`/hero-slides/${id}`, {
-        method: "PUT",
-        body: JSON.stringify({ caption })
-    });
-
-    toast("Updated");
-    loadHero();
+    document.getElementById("heroList").innerHTML = data.map(i => `
+        <div>
+            <img src="${i.imageUrl}" width="100">
+            <p>${i.caption}</p>
+            <button onclick="deleteHero(${i.id})">Delete</button>
+        </div>
+    `).join("");
 }
 
 async function deleteHero(id) {
@@ -95,23 +96,7 @@ async function deleteHero(id) {
     loadHero();
 }
 
-// =====================
-// STAFF
-// =====================
-async function loadStaff() {
-    const data = await api("/staff-members");
-
-    document.getElementById("staffList").innerHTML = data.map(i => `
-        <div class="item-card">
-            <img src="${i.imageUrl}" width="80"/>
-            <input value="${i.name}" id="name-${i.id}" />
-            <input value="${i.position}" id="pos-${i.id}" />
-            <button onclick="updateStaff(${i.id})">Update</button>
-            <button onclick="deleteStaff(${i.id})">Delete</button>
-        </div>
-    `).join("");
-}
-
+/* ================= STAFF ================= */
 async function addStaff() {
     const file = document.getElementById("staffFile").files[0];
     const name = document.getElementById("staffName").value;
@@ -122,7 +107,10 @@ async function addStaff() {
     form.append("name", name);
     form.append("position", position);
 
-    await fetch(API_BASE + "/staff-members", { method: "POST", body: form });
+    await api("/staff-members", {
+        method: "POST",
+        body: form
+    });
 
     document.getElementById("staffFile").value = "";
     document.getElementById("staffName").value = "";
@@ -132,17 +120,18 @@ async function addStaff() {
     loadStaff();
 }
 
-async function updateStaff(id) {
-    const name = document.getElementById(`name-${id}`).value;
-    const position = document.getElementById(`pos-${id}`).value;
+async function loadStaff() {
+    const res = await api("/staff-members");
+    const data = await res.json();
 
-    await api(`/staff-members/${id}`, {
-        method: "PUT",
-        body: JSON.stringify({ name, position })
-    });
-
-    toast("Updated");
-    loadStaff();
+    document.getElementById("staffList").innerHTML = data.map(i => `
+        <div>
+            <img src="${i.imageUrl}" width="80">
+            <p>${i.name}</p>
+            <p>${i.position}</p>
+            <button onclick="deleteStaff(${i.id})">Delete</button>
+        </div>
+    `).join("");
 }
 
 async function deleteStaff(id) {
@@ -151,51 +140,11 @@ async function deleteStaff(id) {
     loadStaff();
 }
 
-// =====================
-// BACKGROUND
-// =====================
-async function addBackground() {
-    const file = document.getElementById("bgFile").files[0];
-
-    const form = new FormData();
-    form.append("image", file);
-
-    await fetch(API_BASE + "/background-images", { method: "POST", body: form });
-
-    document.getElementById("bgFile").value = "";
-
-    toast("Uploaded");
-    loadBackground();
-}
-
-async function loadBackground() {
-    const data = await api("/background-images");
-
-    document.getElementById("backgroundList").innerHTML =
-        data.map(i => `<img src="${i.url}" width="120"/>`).join("");
-}
-
-// =====================
-// INIT
-// =====================
+/* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", () => {
-    checkAuth();
-
-    document.querySelectorAll(".nav-item").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const section = btn.dataset.section;
-
-            document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-            document.getElementById(section + "-section")?.classList.add("active");
-        });
-    });
-
-    // attach buttons
     document.getElementById("addHeroBtn")?.addEventListener("click", addHero);
     document.getElementById("addStaffBtn")?.addEventListener("click", addStaff);
-    document.getElementById("addBgBtn")?.addEventListener("click", addBackground);
 
     loadHero();
     loadStaff();
-    loadBackground();
 });
