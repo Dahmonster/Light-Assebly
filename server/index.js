@@ -14,7 +14,7 @@ dotenv.config();
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,6 +73,20 @@ async function initDB() {
             id INTEGER PRIMARY KEY,
             url TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS gallery_items (
+            id INTEGER PRIMARY KEY,
+            type TEXT,
+            url TEXT,
+            caption TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY,
+            title TEXT,
+            description TEXT,
+            eventDate TEXT
+        );
     `);
 }
 
@@ -88,7 +102,7 @@ app.post("/api/auth/login", (req, res) => {
         return res.json({ success: true, token });
     }
 
-    return res.status(401).json({ success: false });
+    return res.status(401).json({ success: false, message: "Invalid login" });
 });
 
 /* ================= AUTH MIDDLEWARE ================= */
@@ -122,7 +136,6 @@ app.get("/api/hero-slides", async (req, res) => {
     res.json(await db.all("SELECT * FROM hero_slides ORDER BY id DESC"));
 });
 
-/* 🔥 EDIT HERO */
 app.put("/api/hero-slides/:id", auth, async (req, res) => {
     await db.run(
         "UPDATE hero_slides SET caption=? WHERE id=?",
@@ -131,7 +144,6 @@ app.put("/api/hero-slides/:id", auth, async (req, res) => {
     res.json({ success: true });
 });
 
-/* DELETE HERO */
 app.delete("/api/hero-slides/:id", auth, async (req, res) => {
     await db.run("DELETE FROM hero_slides WHERE id=?", [req.params.id]);
     res.json({ success: true });
@@ -153,7 +165,6 @@ app.get("/api/staff-members", async (req, res) => {
     res.json(await db.all("SELECT * FROM staff_members"));
 });
 
-/* 🔥 EDIT STAFF */
 app.put("/api/staff-members/:id", auth, async (req, res) => {
     await db.run(
         "UPDATE staff_members SET name=?, position=? WHERE id=?",
@@ -162,7 +173,6 @@ app.put("/api/staff-members/:id", auth, async (req, res) => {
     res.json({ success: true });
 });
 
-/* DELETE STAFF */
 app.delete("/api/staff-members/:id", auth, async (req, res) => {
     await db.run("DELETE FROM staff_members WHERE id=?", [req.params.id]);
     res.json({ success: true });
@@ -184,15 +194,72 @@ app.get("/api/background-images", async (req, res) => {
     res.json(await db.all("SELECT * FROM background_images"));
 });
 
-/* DELETE BACKGROUND */
 app.delete("/api/background-images/:id", auth, async (req, res) => {
     await db.run("DELETE FROM background_images WHERE id=?", [req.params.id]);
     res.json({ success: true });
 });
 
+/* ================= GALLERY ================= */
+app.post("/api/gallery-items", auth, upload.single("image"), async (req, res) => {
+    const url = req.body.type === "video"
+        ? req.body.url
+        : await safeUpload(req.file, "gallery");
+
+    const result = await db.run(
+        "INSERT INTO gallery_items (type, url, caption) VALUES (?,?,?)",
+        [req.body.type, url, req.body.caption || ""]
+    );
+
+    res.json({ success: true, id: result.lastID });
+});
+
+app.get("/api/gallery-items", async (req, res) => {
+    res.json(await db.all("SELECT * FROM gallery_items"));
+});
+
+app.put("/api/gallery-items/:id", auth, async (req, res) => {
+    await db.run(
+        "UPDATE gallery_items SET caption=? WHERE id=?",
+        [req.body.caption, req.params.id]
+    );
+    res.json({ success: true });
+});
+
+app.delete("/api/gallery-items/:id", auth, async (req, res) => {
+    await db.run("DELETE FROM gallery_items WHERE id=?", [req.params.id]);
+    res.json({ success: true });
+});
+
+/* ================= EVENTS ================= */
+app.post("/api/events", auth, async (req, res) => {
+    const result = await db.run(
+        "INSERT INTO events (title, description, eventDate) VALUES (?,?,?)",
+        [req.body.title, req.body.description, req.body.eventDate]
+    );
+
+    res.json({ success: true, id: result.lastID });
+});
+
+app.get("/api/events", async (req, res) => {
+    res.json(await db.all("SELECT * FROM events ORDER BY id DESC"));
+});
+
+app.put("/api/events/:id", auth, async (req, res) => {
+    await db.run(
+        "UPDATE events SET title=?, description=? WHERE id=?",
+        [req.body.title, req.body.description, req.params.id]
+    );
+    res.json({ success: true });
+});
+
+app.delete("/api/events/:id", auth, async (req, res) => {
+    await db.run("DELETE FROM events WHERE id=?", [req.params.id]);
+    res.json({ success: true });
+});
+
 /* ================= ROOT ================= */
 app.get("/", (req, res) => {
-    res.send("CMS API Running 🚀");
+    res.send("Enterprise CMS Running 🚀");
 });
 
 /* ================= START ================= */
