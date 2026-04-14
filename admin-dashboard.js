@@ -1,183 +1,60 @@
 const API_BASE = "https://light-assembly.onrender.com/api";
 
-/***********************
- * TOAST
- ***********************/
-function showToast(message, type = "success") {
-    const toast = document.getElementById("toast");
-    toast.textContent = message;
-    toast.className = `toast show ${type}`;
+// =====================
+// TOAST
+// =====================
+function toast(msg, type = "success") {
+    const div = document.createElement("div");
+    div.textContent = msg;
+    div.style.position = "fixed";
+    div.style.bottom = "20px";
+    div.style.right = "20px";
+    div.style.padding = "10px 15px";
+    div.style.background = type === "success" ? "green" : "red";
+    div.style.color = "white";
+    div.style.borderRadius = "6px";
+    div.style.zIndex = "9999";
+    document.body.appendChild(div);
 
-    setTimeout(() => {
-        toast.classList.remove("show");
-    }, 3000);
+    setTimeout(() => div.remove(), 3000);
 }
 
-/***********************
- * HELPERS
- ***********************/
-async function api(endpoint, options = {}) {
-    try {
-        const res = await fetch(API_BASE + endpoint, {
-            ...options,
-            headers: options.body instanceof FormData
-                ? {}
-                : { "Content-Type": "application/json" }
-        });
+// =====================
+// API
+// =====================
+async function api(url, options = {}) {
+    const res = await fetch(API_BASE + url, {
+        ...options,
+        headers: options.body instanceof FormData
+            ? {}
+            : { "Content-Type": "application/json" }
+    });
 
-        if (!res.ok) throw new Error("Request failed");
-
-        if (res.status === 204) return null;
-        return res.json();
-    } catch (err) {
-        showToast(err.message, "error");
-    }
+    if (!res.ok) throw new Error("Request failed");
+    return res.json();
 }
 
-async function uploadFile(endpoint, file, extra = {}) {
-    try {
-        const form = new FormData();
-        form.append("image", file);
-
-        Object.entries(extra).forEach(([k, v]) => form.append(k, v));
-
-        const res = await fetch(API_BASE + endpoint, {
-            method: "POST",
-            body: form
-        });
-
-        if (!res.ok) throw new Error("Upload failed");
-
-        showToast("Upload successful ✅");
-        return res.json();
-    } catch (err) {
-        showToast(err.message, "error");
-    }
-}
-
-/***********************
- * AUTH
- ***********************/
+// =====================
+// AUTH
+// =====================
 function checkAuth() {
     const user = localStorage.getItem("adminUser");
-
-    if (!user) {
-        window.location.href = "login.html";
-        return false;
-    }
+    if (!user) window.location.href = "login.html";
 
     document.getElementById("userName").textContent = user;
-    return true;
 }
 
-function handleLogout() {
-    localStorage.removeItem("adminUser");
-    window.location.href = "login.html";
-}
-
-/***********************
- * NAVIGATION + HAMBURGER
- ***********************/
-function switchSection(section) {
-    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-    document.getElementById(section + "-section")?.classList.add("active");
-
-    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-    document.querySelector(`[data-section="${section}"]`)?.classList.add("active");
-
-    document.querySelector(".sidebar-nav").classList.remove("active");
-
-    const loaders = {
-        overview: loadOverview,
-        background: loadBackground,
-        hero: loadHero,
-        staff: loadStaff,
-        gallery: loadGallery
-    };
-
-    loaders[section]?.();
-}
-
-/***********************
- * OVERVIEW
- ***********************/
-async function loadOverview() {
-    const [news, staff, events, messages] = await Promise.all([
-        api("/news-posts"),
-        api("/staff-members"),
-        api("/events"),
-        api("/contact-messages")
-    ]);
-
-    setText("newsCount", news?.length || 0);
-    setText("staffCount", staff?.length || 0);
-    setText("eventsCount", events?.length || 0);
-    setText("messagesCount", messages?.length || 0);
-}
-
-function setText(id, val) {
-    document.getElementById(id).textContent = val;
-}
-
-/***********************
- * CLEAR INPUTS
- ***********************/
-function clearInputs(...ids) {
-    ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-
-        if (el.type === "file") el.value = "";
-        else el.value = "";
-    });
-}
-
-/***********************
- * BACKGROUND
- ***********************/
-async function loadBackground() {
-    const items = await api("/background-images");
-
-    document.getElementById("backgroundList").innerHTML = items.map(i => `
-        <div class="item-card">
-            <img src="${i.url}" width="120"/>
-
-            <button onclick="deleteBackground(${i.id})">Delete</button>
-        </div>
-    `).join("");
-}
-
-async function addBackground() {
-    const file = document.getElementById("bgFile").files[0];
-    if (!file) return showToast("Select image", "error");
-
-    await uploadFile("/background-images", file);
-
-    clearInputs("bgFile");
-    loadBackground();
-}
-
-async function deleteBackground(id) {
-    if (!confirm("Delete this image?")) return;
-
-    await api(`/background-images/${id}`, { method: "DELETE" });
-    showToast("Deleted successfully");
-    loadBackground();
-}
-
-/***********************
- * HERO
- ***********************/
+// =====================
+// LOADERS
+// =====================
 async function loadHero() {
-    const items = await api("/hero-slides");
+    const data = await api("/hero-slides");
 
-    document.getElementById("heroList").innerHTML = items.map(i => `
+    document.getElementById("heroList").innerHTML = data.map(i => `
         <div class="item-card">
             <img src="${i.imageUrl}" width="100"/>
-
-            <input type="text" id="cap-${i.id}" value="${i.caption || ""}">
-
-            <button onclick="updateHero(${i.id})">Edit</button>
+            <input value="${i.caption}" id="cap-${i.id}" />
+            <button onclick="updateHero(${i.id})">Update</button>
             <button onclick="deleteHero(${i.id})">Delete</button>
         </div>
     `).join("");
@@ -187,11 +64,16 @@ async function addHero() {
     const file = document.getElementById("heroFile").files[0];
     const caption = document.getElementById("heroCaption").value;
 
-    if (!file) return showToast("Select image", "error");
+    const form = new FormData();
+    form.append("image", file);
+    form.append("caption", caption);
 
-    await uploadFile("/hero-slides", file, { caption });
+    await fetch(API_BASE + "/hero-slides", { method: "POST", body: form });
 
-    clearInputs("heroFile", "heroCaption");
+    document.getElementById("heroFile").value = "";
+    document.getElementById("heroCaption").value = "";
+
+    toast("Hero added");
     loadHero();
 }
 
@@ -203,32 +85,28 @@ async function updateHero(id) {
         body: JSON.stringify({ caption })
     });
 
-    showToast("Updated successfully");
+    toast("Updated");
     loadHero();
 }
 
 async function deleteHero(id) {
-    if (!confirm("Delete this?")) return;
-
     await api(`/hero-slides/${id}`, { method: "DELETE" });
-    showToast("Deleted");
+    toast("Deleted");
     loadHero();
 }
 
-/***********************
- * STAFF
- ***********************/
+// =====================
+// STAFF
+// =====================
 async function loadStaff() {
-    const items = await api("/staff-members");
+    const data = await api("/staff-members");
 
-    document.getElementById("staffList").innerHTML = items.map(i => `
+    document.getElementById("staffList").innerHTML = data.map(i => `
         <div class="item-card">
             <img src="${i.imageUrl}" width="80"/>
-
-            <input id="name-${i.id}" value="${i.name}">
-            <input id="pos-${i.id}" value="${i.position}">
-
-            <button onclick="updateStaff(${i.id})">Edit</button>
+            <input value="${i.name}" id="name-${i.id}" />
+            <input value="${i.position}" id="pos-${i.id}" />
+            <button onclick="updateStaff(${i.id})">Update</button>
             <button onclick="deleteStaff(${i.id})">Delete</button>
         </div>
     `).join("");
@@ -239,11 +117,18 @@ async function addStaff() {
     const name = document.getElementById("staffName").value;
     const position = document.getElementById("staffPosition").value;
 
-    if (!file) return showToast("Select image", "error");
+    const form = new FormData();
+    form.append("image", file);
+    form.append("name", name);
+    form.append("position", position);
 
-    await uploadFile("/staff-members", file, { name, position });
+    await fetch(API_BASE + "/staff-members", { method: "POST", body: form });
 
-    clearInputs("staffFile", "staffName", "staffPosition");
+    document.getElementById("staffFile").value = "";
+    document.getElementById("staffName").value = "";
+    document.getElementById("staffPosition").value = "";
+
+    toast("Staff added");
     loadStaff();
 }
 
@@ -256,44 +141,61 @@ async function updateStaff(id) {
         body: JSON.stringify({ name, position })
     });
 
-    showToast("Updated");
+    toast("Updated");
     loadStaff();
 }
 
 async function deleteStaff(id) {
-    if (!confirm("Delete this?")) return;
-
     await api(`/staff-members/${id}`, { method: "DELETE" });
-    showToast("Deleted");
+    toast("Deleted");
     loadStaff();
 }
 
-/***********************
- * INIT
- ***********************/
+// =====================
+// BACKGROUND
+// =====================
+async function addBackground() {
+    const file = document.getElementById("bgFile").files[0];
+
+    const form = new FormData();
+    form.append("image", file);
+
+    await fetch(API_BASE + "/background-images", { method: "POST", body: form });
+
+    document.getElementById("bgFile").value = "";
+
+    toast("Uploaded");
+    loadBackground();
+}
+
+async function loadBackground() {
+    const data = await api("/background-images");
+
+    document.getElementById("backgroundList").innerHTML =
+        data.map(i => `<img src="${i.url}" width="120"/>`).join("");
+}
+
+// =====================
+// INIT
+// =====================
 document.addEventListener("DOMContentLoaded", () => {
-    if (!checkAuth()) return;
+    checkAuth();
 
-    document.querySelectorAll(".nav-item:not(.logout)")
-        .forEach(btn =>
-            btn.addEventListener("click", e =>
-                switchSection(e.target.dataset.section)
-            )
-        );
+    document.querySelectorAll(".nav-item").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const section = btn.dataset.section;
 
-    document.getElementById("logoutBtn")
-        ?.addEventListener("click", handleLogout);
+            document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+            document.getElementById(section + "-section")?.classList.add("active");
+        });
+    });
 
-    document.getElementById("menuToggle")
-        ?.addEventListener("click", () =>
-            document.querySelector(".sidebar-nav")
-                .classList.toggle("active")
-        );
-
-    // BUTTONS
-    document.getElementById("addBgBtn")?.addEventListener("click", addBackground);
+    // attach buttons
     document.getElementById("addHeroBtn")?.addEventListener("click", addHero);
     document.getElementById("addStaffBtn")?.addEventListener("click", addStaff);
+    document.getElementById("addBgBtn")?.addEventListener("click", addBackground);
 
-    loadOverview();
+    loadHero();
+    loadStaff();
+    loadBackground();
 });
