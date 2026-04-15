@@ -105,44 +105,6 @@ function nextSlide() {
 }
 
 
-// Director Card
-async function setupDirectorCard() {
-    const section = document.getElementById('directorSection');
-    if (!section) return;
-
-    const director = await Utils.fetchAPI('/director-message');
-
-    if (!director) {
-        section.innerHTML = '<p>Director information not available</p>';
-        return;
-    }
-
-    let isToggled = false;
-
-    section.innerHTML = `
-        <div class="director-container">
-            <div class="director-card" id="directorCard">
-                <div class="director-side director-text-side">
-                    <h2>${director.title}</h2>
-                    <p>${director.message}</p>
-                </div>
-                <div class="director-side director-image-side" style="background-image: url(${director.imageUrl});">
-                    <div class="director-colored-side">
-                        <span>MESSAGE FROM THE SENIOR PASTOR</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    const card = document.getElementById('directorCard');
-    card.addEventListener('click', () => {
-        isToggled = !isToggled;
-        card.classList.toggle('toggled');
-    });
-}
-
-
 // Staff Slider
 async function setupStaffSlider() {
     const staffData = await Utils.fetchAPI('/staff-members') || [];
@@ -233,7 +195,6 @@ async function setupNewsSection() {
 document.addEventListener('DOMContentLoaded', () => {
     setupDynamicBackground();
     setupHeroSlider();
-    setupDirectorCard();
     setupStaffSlider();
     setupNewsSection();
 });
