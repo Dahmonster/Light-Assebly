@@ -249,8 +249,10 @@ app.post("/api/news", auth, upload.single("image"), async (req, res) => {
 });
 
 app.get("/api/news", async (req, res) => {
-    res.json(await News.find());
+    const news = await News.find().sort({ _id: -1 }); // newest first
+    res.json(news);
 });
+
 
 app.delete("/api/news/:id", auth, async (req, res) => {
     await News.findByIdAndDelete(req.params.id);
