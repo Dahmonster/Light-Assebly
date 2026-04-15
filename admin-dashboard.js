@@ -172,13 +172,33 @@ async function loadDashboardCounts() {
         api("/messages")
     ]);
 
-    newsCount.textContent = news.length;
-    staffCount.textContent = staff.length;
-    eventsCount.textContent = events.length;
-    messagesCount.textContent = messages.length;
+    document.getElementById("newsCount").textContent = news.length;
+    document.getElementById("staffCount").textContent = staff.length;
+    document.getElementById("eventsCount").textContent = events.length;
+    document.getElementById("messagesCount").textContent = messages.length;
 }
 
 /* ================= HERO ================= */
+async function addHero() {
+    try {
+        const file = document.getElementById("heroFile").files[0];
+        const caption = document.getElementById("heroCaption").value;
+
+        const form = new FormData();
+        form.append("image", file);
+        form.append("caption", caption);
+
+        await api("/hero-slides", { method: "POST", body: form });
+
+        toast("Hero added");
+        loadHero();
+        loadDashboardCounts();
+
+    } catch (e) {
+        toast(e.message, "error");
+    }
+}
+
 async function loadHero() {
     const data = await api("/hero-slides");
 
@@ -199,28 +219,24 @@ async function deleteHero(id) {
     loadHero();
 }
 
-/* ================= STAFF ================= */
-async function loadStaff() {
-    const data = await api("/staff-members");
-
-    staffList.innerHTML = data.map(i => `
-        <div>
-            <img src="${i.imageUrl}" width="80"/>
-            <p>${i.name} - ${i.position}</p>
-            <button onclick='openModal("staff-members", ${JSON.stringify(i)})'>Edit</button>
-            <button onclick="deleteStaff('${i._id}')">Delete</button>
-        </div>
-    `).join("");
-}
-
-async function deleteStaff(id) {
-    if (!confirmDelete()) return;
-    await api(`/staff-members/${id}`, { method: "DELETE" });
-    toast("Deleted");
-    loadStaff();
-}
-
 /* ================= BACKGROUND ================= */
+async function addBg() {
+    try {
+        const file = document.getElementById("bgFile").files[0];
+
+        const form = new FormData();
+        form.append("image", file);
+
+        await api("/background-images", { method: "POST", body: form });
+
+        toast("Background uploaded");
+        loadBackground();
+
+    } catch (e) {
+        toast(e.message, "error");
+    }
+}
+
 async function loadBackground() {
     const data = await api("/background-images");
 
@@ -240,6 +256,33 @@ async function deleteBg(id) {
 }
 
 /* ================= GALLERY ================= */
+async function addGallery() {
+    try {
+        const type = document.getElementById("galleryType").value;
+        const file = document.getElementById("galleryFile").files[0];
+        const url = document.getElementById("galleryVideoUrl").value;
+        const caption = document.getElementById("galleryCaption").value;
+
+        const form = new FormData();
+        form.append("type", type);
+        form.append("caption", caption);
+
+        if (type === "video") {
+            form.append("url", url);
+        } else {
+            form.append("image", file);
+        }
+
+        await api("/gallery-items", { method: "POST", body: form });
+
+        toast("Gallery added");
+        loadGallery();
+
+    } catch (e) {
+        toast(e.message, "error");
+    }
+}
+
 async function loadGallery() {
     const data = await api("/gallery-items");
 
@@ -305,6 +348,29 @@ async function deleteEvent(id) {
 }
 
 /* ================= NEWS ================= */
+async function addNews() {
+    try {
+        const file = document.getElementById("newsFile").files[0];
+
+        const form = new FormData();
+        form.append("title", newsTitle.value);
+        form.append("slug", newsSlug.value);
+        form.append("preview", newsPreviewText.value);
+        form.append("content", newsContent.value);
+
+        if (file) form.append("image", file);
+
+        await api("/news", { method: "POST", body: form });
+
+        toast("News added");
+        loadNews();
+        loadDashboardCounts();
+
+    } catch (e) {
+        toast(e.message, "error");
+    }
+}
+
 async function loadNews() {
     const data = await api("/news");
 
@@ -353,7 +419,12 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.onclick = () => switchSection(btn.dataset.section);
     });
 
-    addEventBtn.onclick = addEvent;
+    document.getElementById("addHeroBtn").onclick = addHero;
+    document.getElementById("addBgBtn").onclick = addBg;
+    document.getElementById("addGalleryBtn").onclick = addGallery;
+    document.getElementById("addNewsBtn").onclick = addNews;
+    document.getElementById("addEventBtn").onclick = addEvent;
+
     logoutBtn.onclick = logout;
 
     loadHero();
