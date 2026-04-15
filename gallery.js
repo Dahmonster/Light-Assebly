@@ -26,7 +26,10 @@ function renderGallery() {
         return `
     <div class="gallery-item" data-index="${index}">
         ${isVideo ? `
-            <div class="video-thumb">🎥 Video</div>
+            <img 
+  src="https://img.youtube.com/vi/${convertYouTube(item.url)?.split('/embed/')[1]}/hqdefault.jpg" 
+  class="gallery-item-image"
+/>
         ` : `
             <img src="${item.url}" alt="${item.caption || 'Gallery item'}" class="gallery-item-image">
         `}
