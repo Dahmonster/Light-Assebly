@@ -279,10 +279,33 @@ app.get("/api/gallery-items", async (req, res) => {
     res.json(await Gallery.find());
 });
 
+/* ================= NEWS UPDATE (FIX) ================= */
+app.put("/api/news/:id", auth, upload.single("image"), async (req, res) => {
+    try {
+        const imageUrl = req.file ? await safeUpload(req.file, "news") : null;
+
+        await News.findByIdAndUpdate(req.params.id, {
+            title: req.body.title,
+            slug: req.body.slug,
+            preview: req.body.preview,
+            content: req.body.content,
+            ...(imageUrl && { imageUrl })
+        });
+
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("❌ News update error:", err);
+        res.status(500).json({ message: "News update failed" });
+    }
+});
+
+
 app.delete("/api/gallery-items/:id", auth, async (req, res) => {
     await Gallery.findByIdAndDelete(req.params.id);
     res.json({ success: true });
 });
+
 
 /* ================= MESSAGES ================= */
 
