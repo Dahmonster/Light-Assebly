@@ -22,10 +22,7 @@ app.get("/", (req, res) => {
 });
 
 /* ================= MONGODB ================= */
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
+mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("✅ MongoDB Connected"))
 .catch(err => console.log("❌ MongoDB Error:", err));
 
@@ -54,7 +51,8 @@ const Gallery = mongoose.model("Gallery", {
 const Event = mongoose.model("Event", {
     title: String,
     description: String,
-    eventDate: String
+    eventDate: String,
+    imageUrl: String   // ✅ NEW
 });
 
 const News = mongoose.model("News", {
@@ -119,13 +117,9 @@ function auth(req, res, next) {
 
 /* ================= HERO ================= */
 app.post("/api/hero-slides", auth, upload.single("image"), async (req, res) => {
-    try {
-        const imageUrl = await safeUpload(req.file, "hero");
-        await Hero.create({ imageUrl, caption: req.body.caption || "" });
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ message: "Failed to add hero" });
-    }
+    const imageUrl = await safeUpload(req.file, "hero");
+    await Hero.create({ imageUrl, caption: req.body.caption || "" });
+    res.json({ success: true });
 });
 
 app.get("/api/hero-slides", async (req, res) => {
@@ -133,18 +127,14 @@ app.get("/api/hero-slides", async (req, res) => {
 });
 
 app.put("/api/hero-slides/:id", auth, upload.single("image"), async (req, res) => {
-    try {
-        const imageUrl = req.file ? await safeUpload(req.file, "hero") : null;
+    const imageUrl = req.file ? await safeUpload(req.file, "hero") : null;
 
-        await Hero.findByIdAndUpdate(req.params.id, {
-            caption: req.body.caption,
-            ...(imageUrl && { imageUrl })
-        });
+    await Hero.findByIdAndUpdate(req.params.id, {
+        caption: req.body.caption,
+        ...(imageUrl && { imageUrl })
+    });
 
-        res.json({ success: true });
-    } catch {
-        res.status(500).json({ message: "Update failed" });
-    }
+    res.json({ success: true });
 });
 
 app.delete("/api/hero-slides/:id", auth, async (req, res) => {
@@ -154,19 +144,15 @@ app.delete("/api/hero-slides/:id", auth, async (req, res) => {
 
 /* ================= STAFF ================= */
 app.post("/api/staff-members", auth, upload.single("image"), async (req, res) => {
-    try {
-        const imageUrl = await safeUpload(req.file, "staff");
+    const imageUrl = await safeUpload(req.file, "staff");
 
-        await Staff.create({
-            name: req.body.name,
-            position: req.body.position,
-            imageUrl
-        });
+    await Staff.create({
+        name: req.body.name,
+        position: req.body.position,
+        imageUrl
+    });
 
-        res.json({ success: true });
-    } catch {
-        res.status(500).json({ message: "Staff add failed" });
-    }
+    res.json({ success: true });
 });
 
 app.get("/api/staff-members", async (req, res) => {
@@ -174,19 +160,15 @@ app.get("/api/staff-members", async (req, res) => {
 });
 
 app.put("/api/staff-members/:id", auth, upload.single("image"), async (req, res) => {
-    try {
-        const imageUrl = req.file ? await safeUpload(req.file, "staff") : null;
+    const imageUrl = req.file ? await safeUpload(req.file, "staff") : null;
 
-        await Staff.findByIdAndUpdate(req.params.id, {
-            name: req.body.name,
-            position: req.body.position,
-            ...(imageUrl && { imageUrl })
-        });
+    await Staff.findByIdAndUpdate(req.params.id, {
+        name: req.body.name,
+        position: req.body.position,
+        ...(imageUrl && { imageUrl })
+    });
 
-        res.json({ success: true });
-    } catch {
-        res.status(500).json({ message: "Update failed" });
-    }
+    res.json({ success: true });
 });
 
 app.delete("/api/staff-members/:id", auth, async (req, res) => {
@@ -194,65 +176,17 @@ app.delete("/api/staff-members/:id", auth, async (req, res) => {
     res.json({ success: true });
 });
 
-/* ================= BACKGROUND ================= */
-app.post("/api/background-images", auth, upload.single("image"), async (req, res) => {
-    const url = await safeUpload(req.file, "background");
-    await Background.create({ url });
-    res.json({ success: true });
-});
+/* ================= EVENTS (UPDATED) ================= */
+app.post("/api/events", auth, upload.single("image"), async (req, res) => {
+    const imageUrl = await safeUpload(req.file, "events");
 
-app.get("/api/background-images", async (req, res) => {
-    res.json(await Background.find());
-});
-
-app.delete("/api/background-images/:id", auth, async (req, res) => {
-    await Background.findByIdAndDelete(req.params.id);
-    res.json({ success: true });
-});
-
-/* ================= GALLERY ================= */
-app.post("/api/gallery-items", auth, upload.single("image"), async (req, res) => {
-    const url = req.body.type === "video"
-        ? req.body.url
-        : await safeUpload(req.file, "gallery");
-
-    await Gallery.create({
-        type: req.body.type,
-        url,
-        caption: req.body.caption
+    await Event.create({
+        title: req.body.title,
+        description: req.body.description,
+        eventDate: req.body.eventDate,
+        imageUrl
     });
 
-    res.json({ success: true });
-});
-
-app.get("/api/gallery-items", async (req, res) => {
-    res.json(await Gallery.find());
-});
-
-app.put("/api/gallery-items/:id", auth, upload.single("image"), async (req, res) => {
-    const url = req.body.type === "video"
-        ? req.body.url
-        : req.file
-            ? await safeUpload(req.file, "gallery")
-            : null;
-
-    await Gallery.findByIdAndUpdate(req.params.id, {
-        type: req.body.type,
-        caption: req.body.caption,
-        ...(url && { url })
-    });
-
-    res.json({ success: true });
-});
-
-app.delete("/api/gallery-items/:id", auth, async (req, res) => {
-    await Gallery.findByIdAndDelete(req.params.id);
-    res.json({ success: true });
-});
-
-/* ================= EVENTS ================= */
-app.post("/api/events", auth, async (req, res) => {
-    await Event.create(req.body);
     res.json({ success: true });
 });
 
@@ -260,8 +194,16 @@ app.get("/api/events", async (req, res) => {
     res.json(await Event.find());
 });
 
-app.put("/api/events/:id", auth, async (req, res) => {
-    await Event.findByIdAndUpdate(req.params.id, req.body);
+app.put("/api/events/:id", auth, upload.single("image"), async (req, res) => {
+    const imageUrl = req.file ? await safeUpload(req.file, "events") : null;
+
+    await Event.findByIdAndUpdate(req.params.id, {
+        title: req.body.title,
+        description: req.body.description,
+        eventDate: req.body.eventDate,
+        ...(imageUrl && { imageUrl })
+    });
+
     res.json({ success: true });
 });
 
@@ -289,43 +231,11 @@ app.get("/api/news", async (req, res) => {
     res.json(await News.find());
 });
 
-app.put("/api/news/:id", auth, upload.single("image"), async (req, res) => {
-    const imageUrl = req.file ? await safeUpload(req.file, "news") : null;
-
-    await News.findByIdAndUpdate(req.params.id, {
-        title: req.body.title,
-        slug: req.body.slug,
-        preview: req.body.preview,
-        content: req.body.content,
-        ...(imageUrl && { imageUrl })
-    });
-
-    res.json({ success: true });
-});
-
 app.delete("/api/news/:id", auth, async (req, res) => {
     await News.findByIdAndDelete(req.params.id);
     res.json({ success: true });
 });
 
-/* ================= MESSAGES ================= */
-app.post("/api/contact-messages", async (req, res) => {
-    await Message.create(req.body);
-    res.json({ success: true });
-});
-
-app.get("/api/messages", auth, async (req, res) => {
-    res.json(await Message.find());
-});
-
-app.delete("/api/messages/:id", auth, async (req, res) => {
-    await Message.findByIdAndDelete(req.params.id);
-    res.json({ success: true });
-});
-
 /* ================= START ================= */
 const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
