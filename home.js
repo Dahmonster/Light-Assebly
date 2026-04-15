@@ -104,6 +104,11 @@ function nextSlide() {
     updateHeroSlider();
 }
 
+document.querySelectorAll('.director-card').forEach(card => {
+    card.addEventListener('click', () => {
+        card.classList.toggle('toggled');
+    });
+});
 
 // Staff Slider
 async function setupStaffSlider() {
