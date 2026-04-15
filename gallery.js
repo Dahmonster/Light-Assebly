@@ -24,12 +24,19 @@ function renderGallery() {
         const isVideo = item.type === 'video';
 
         return `
-            <div class="gallery-item" data-index="${index}">
-                ${isVideo ? `
-                    <div class="video-thumb">🎥 Video</div>
-                ` : `
-                    <img src="${item.url}" alt="${item.caption || 'Gallery item'}" class="gallery-item-image">
-<p class="gallery-caption">${item.caption || ''}</p>
+    <div class="gallery-item" data-index="${index}">
+        ${isVideo ? `
+            <div class="video-thumb">🎥 Video</div>
+        ` : `
+            <img src="${item.url}" alt="${item.caption || 'Gallery item'}" class="gallery-item-image">
+        `}
+
+        <div class="gallery-item-caption">
+            ${item.caption || ''}
+        </div>
+    </div>
+`;
+<p class="gallery-item-caption">${item.caption || ''}</p>
                 `}
             </div>
         `;
