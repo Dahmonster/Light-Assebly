@@ -29,6 +29,7 @@ function renderGallery() {
                     <div class="video-thumb">🎥 Video</div>
                 ` : `
                     <img src="${item.url}" alt="${item.caption || 'Gallery item'}" class="gallery-item-image">
+<p class="gallery-caption">${item.caption || ''}</p>
                 `}
             </div>
         `;
