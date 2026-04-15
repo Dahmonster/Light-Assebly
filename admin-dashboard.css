@@ -374,3 +374,12 @@ img {
 .modal-save-btn:hover {
     background: #0056b3;
 }
+
+#imagePreview {
+    max-width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+    display: block;
+    margin: 10px auto;
+    border-radius: 8px;
+}
