@@ -91,16 +91,14 @@ function openLightbox() {
     if (item.type === 'video') {
 
         // YouTube handling
-        if (item.url.includes("youtube.com") || item.url.includes("youtu.be")) {
-            const embedUrl = convertYouTube(item.url);
-
-            mediaEl = document.createElement('iframe');
-            mediaEl.src = embedUrl;
-            mediaEl.frameBorder = "0";
-            mediaEl.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
-            mediaEl.allowFullscreen = true;
-            mediaEl.style.width = "100%";
-            mediaEl.style.height = "80vh";
+        mediaEl = document.createElement('iframe');
+mediaEl.src = embedUrl;
+mediaEl.width = "100%";
+mediaEl.height = "100%";
+mediaEl.style.maxHeight = "80vh";
+mediaEl.frameBorder = "0";
+mediaEl.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+mediaEl.allowFullscreen = true;
 
         } else {
             mediaEl = document.createElement('video');
