@@ -228,6 +228,7 @@ modalForm.onsubmit = async (e) => {
         // ===== GALLERY =====
         if (type === "gallery-items") {
             form.append("caption", modalContent.value);
+            form.append("type", "image");
         }
 
         // Image (for ALL types)
