@@ -452,6 +452,45 @@ async function addStaff() {
     }
     }
 
+/* ================= STAFF ================= */
+async function loadStaff() {
+    try {
+        const data = await api("/staff-members");
+
+        const staffList = document.getElementById("staffList");
+
+        if (!staffList) return;
+
+        staffList.innerHTML = data.map(i => `
+            <div>
+                <img src="${i.imageUrl}" width="80"/>
+                <p>${i.name} - ${i.position}</p>
+                <button onclick='openModal("staff-members", ${JSON.stringify(i)})'>Edit</button>
+                <button onclick="deleteStaff('${i._id}')">Delete</button>
+            </div>
+        `).join("");
+
+    } catch (e) {
+        toast("Failed to load staff", "error");
+        console.error(e);
+    }
+}
+
+async function deleteStaff(id) {
+    if (!confirmDelete()) return;
+
+    try {
+        await api(`/staff-members/${id}`, { method: "DELETE" });
+
+        toast("Staff deleted");
+        loadStaff();
+        loadDashboardCounts();
+
+    } catch (e) {
+        toast(e.message, "error");
+    }
+}
+
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", () => {
     setupMenu();
