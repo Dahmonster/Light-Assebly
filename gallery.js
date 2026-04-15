@@ -97,6 +97,7 @@ function openLightbox() {
             mediaEl = document.createElement('iframe');
             mediaEl.src = embedUrl;
             mediaEl.frameBorder = "0";
+            mediaEl.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
             mediaEl.allowFullscreen = true;
             mediaEl.style.width = "100%";
             mediaEl.style.height = "80vh";
