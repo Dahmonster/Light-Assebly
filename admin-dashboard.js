@@ -1,14 +1,14 @@
 const API = "https://light-assembly.onrender.com/api";
 
 /* ================= DOM ================= */
-const modalImage = document.getElementById("modalImageInput");
-const modalPreview = document.getElementById("imagePreview");
+const modalImage = document.getElementById("modalImage");
+const modalPreview = document.getElementById("modalPreview");
 const uploadBox = document.getElementById("uploadBox");
 
-const modalTitle = document.getElementById("modalTitleInput");
-const modalSubtitle = document.getElementById("modalSubtitleInput");
-const modalContent = document.getElementById("modalContentInput");
-const modalDate = document.getElementById("modalDateInput");
+const modalTitle = document.getElementById("modalTitle");
+const modalSubtitle = document.getElementById("modalSubtitle");
+const modalContent = document.getElementById("modalContent");
+const modalDate = document.getElementById("modalDate");
 const modalForm = document.getElementById("modalForm");
 
 /* ================= TOAST ================= */
@@ -55,7 +55,30 @@ async function api(url, options = {}) {
 
 /* ================= CONFIRM ================= */
 function confirmDelete() {
-    return confirm("Are you sure you want to delete?");
+    return confirm("Are you sure?");
+}
+
+/* ================= MENU ================= */
+function setupMenu() {
+    document.getElementById("menuToggle")?.addEventListener("click", () => {
+        document.getElementById("sidebarNav")?.classList.toggle("active");
+    });
+}
+
+/* ================= NAV ================= */
+function switchSection(section) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById(`${section}-section`)?.classList.add("active");
+
+    ({
+        hero: loadHero,
+        staff: loadStaff,
+        background: loadBackground,
+        gallery: loadGallery,
+        events: loadEvents,
+        news: loadNews,
+        messages: loadMessages
+    })[section]?.();
 }
 
 /* ================= MODAL ================= */
@@ -220,12 +243,35 @@ async function deleteGallery(id) {
     loadGallery();
 }
 
-/* ================= EVENTS ================= */
+/* ================= EVENTS (WITH IMAGE) ================= */
+async function addEvent() {
+    try {
+        const file = document.getElementById("eventFile").files[0];
+
+        const form = new FormData();
+        form.append("title", eventTitle.value);
+        form.append("description", eventDescription.value);
+        form.append("eventDate", eventDate.value);
+
+        if (file) form.append("image", file);
+
+        await api("/events", { method: "POST", body: form });
+
+        toast("Event added");
+        loadEvents();
+        loadDashboardCounts();
+
+    } catch (e) {
+        toast(e.message, "error");
+    }
+}
+
 async function loadEvents() {
     const data = await api("/events");
 
     eventsList.innerHTML = data.map(i => `
         <div>
+            ${i.imageUrl ? `<img src="${i.imageUrl}" width="80"/>` : ""}
             <p>${i.title}</p>
             <button onclick='openModal("events", ${JSON.stringify(i)})'>Edit</button>
             <button onclick="deleteEvent('${i._id}')">Delete</button>
@@ -288,6 +334,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".nav-item").forEach(btn => {
         btn.onclick = () => switchSection(btn.dataset.section);
     });
+
+    addEventBtn.onclick = addEvent;
 
     logoutBtn.onclick = logout;
 
