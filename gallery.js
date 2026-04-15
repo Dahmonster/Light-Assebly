@@ -36,10 +36,6 @@ function renderGallery() {
         </div>
     </div>
 `;
-<p class="gallery-item-caption">${item.caption || ''}</p>
-                `}
-            </div>
-        `;
     }).join('');
 
     document.querySelectorAll('.gallery-item').forEach(item => {
