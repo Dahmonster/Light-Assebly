@@ -1,14 +1,14 @@
 const API = "https://light-assembly.onrender.com/api";
 
 /* ================= DOM ================= */
-const modalImage = document.getElementById("modalImage");
-const modalPreview = document.getElementById("modalPreview");
+const modalImage = document.getElementById("modalImageInput");
+const modalPreview = document.getElementById("imagePreview");
 const uploadBox = document.getElementById("uploadBox");
 
-const modalTitle = document.getElementById("modalTitle");
-const modalSubtitle = document.getElementById("modalSubtitle");
-const modalContent = document.getElementById("modalContent");
-const modalDate = document.getElementById("modalDate");
+const modalTitle = document.getElementById("modalTitleInput");
+const modalSubtitle = document.getElementById("modalSubtitleInput");
+const modalContent = document.getElementById("modalContentInput");
+const modalDate = document.getElementById("modalDateInput");
 const modalForm = document.getElementById("modalForm");
 
 /* ================= TOAST ================= */
@@ -53,16 +53,16 @@ async function api(url, options = {}) {
     return data;
 }
 
-/* ================= CONFIRM ================= */
-function confirmDelete() {
-    return confirm("Are you sure?");
-}
-
 /* ================= LOGOUT ================= */
 function logout() {
     localStorage.removeItem("token");
     sessionStorage.removeItem("token");
     window.location.href = "login.html";
+}
+
+/* ================= CONFIRM ================= */
+function confirmDelete() {
+    return confirm("Are you sure?");
 }
 
 /* ================= MENU ================= */
@@ -74,17 +74,14 @@ function setupMenu() {
 
 /* ================= NAV ================= */
 function switchSection(section) {
-    // hide all
     document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-
-    // show selected
     document.getElementById(`${section}-section`)?.classList.add("active");
 
-    // highlight sidebar
     document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
     document.querySelector(`[data-section="${section}"]`)?.classList.add("active");
 
-    // load data
+    if (section === "overview") return;
+
     ({
         hero: loadHero,
         staff: loadStaff,
@@ -118,47 +115,53 @@ function closeModal() {
 }
 
 /* ================= IMAGE UPLOAD ================= */
-uploadBox.onclick = () => modalImage.click();
+if (uploadBox) {
+    uploadBox.onclick = () => modalImage.click();
+}
 
-modalImage.onchange = () => {
-    const file = modalImage.files[0];
-    if (file) {
-        modalPreview.src = URL.createObjectURL(file);
-        modalPreview.style.display = "block";
-    }
-};
+if (modalImage) {
+    modalImage.onchange = () => {
+        const file = modalImage.files[0];
+        if (file) {
+            modalPreview.src = URL.createObjectURL(file);
+            modalPreview.style.display = "block";
+        }
+    };
+}
 
 /* ================= SAVE EDIT ================= */
-modalForm.onsubmit = async (e) => {
-    e.preventDefault();
+if (modalForm) {
+    modalForm.onsubmit = async (e) => {
+        e.preventDefault();
 
-    try {
-        const form = new FormData();
+        try {
+            const form = new FormData();
 
-        form.append("title", modalTitle.value);
-        form.append("name", modalTitle.value);
-        form.append("position", modalSubtitle.value);
-        form.append("description", modalContent.value);
-        form.append("content", modalContent.value);
-        form.append("eventDate", modalDate.value);
+            form.append("title", modalTitle.value);
+            form.append("name", modalTitle.value);
+            form.append("position", modalSubtitle.value);
+            form.append("description", modalContent.value);
+            form.append("content", modalContent.value);
+            form.append("eventDate", modalDate.value);
 
-        if (modalImage.files[0]) {
-            form.append("image", modalImage.files[0]);
+            if (modalImage.files[0]) {
+                form.append("image", modalImage.files[0]);
+            }
+
+            await api(`/${currentEdit.type}/${currentEdit.id}`, {
+                method: "PUT",
+                body: form
+            });
+
+            toast("Updated successfully");
+            closeModal();
+            switchSection(currentEdit.type);
+
+        } catch (err) {
+            toast(err.message, "error");
         }
-
-        await api(`/${currentEdit.type}/${currentEdit.id}`, {
-            method: "PUT",
-            body: form
-        });
-
-        toast("Updated successfully");
-        closeModal();
-        switchSection(currentEdit.type);
-
-    } catch (err) {
-        toast(err.message, "error");
-    }
-};
+    };
+}
 
 /* ================= DASHBOARD ================= */
 async function loadDashboardCounts() {
@@ -351,7 +354,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     addEventBtn.onclick = addEvent;
-
     logoutBtn.onclick = logout;
 
     loadHero();
