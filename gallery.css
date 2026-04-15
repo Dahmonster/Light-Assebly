@@ -123,10 +123,12 @@
     align-items: center;
     justify-content: center;
     animation: fadeIn 0.3s ease;
+    pointer-events: none;
 }
 
 .lightbox.active {
     display: flex;
+    pointer-events: auto;
 }
 
 @keyframes fadeIn {
