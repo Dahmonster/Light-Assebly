@@ -411,6 +411,47 @@ async function deleteMessage(id) {
     loadMessages();
 }
 
+async function addStaff() {
+    try {
+        const name = document.getElementById("staffName").value.trim();
+        const position = document.getElementById("staffPosition").value.trim();
+        const file = document.getElementById("staffFile").files[0];
+
+        if (!name || !position) {
+            return toast("Name and position required", "error");
+        }
+
+        const form = new FormData();
+        form.append("name", name);
+        form.append("position", position);
+
+        if (file) {
+            form.append("image", file); // 🔥 change to "file" if it fails
+        }
+
+        console.log("Sending staff:", name, position, file);
+
+        await api("/staff-members", {
+            method: "POST",
+            body: form
+        });
+
+        toast("Staff added successfully");
+
+        // Clear form (important)
+        document.getElementById("staffName").value = "";
+        document.getElementById("staffPosition").value = "";
+        document.getElementById("staffFile").value = "";
+
+        loadStaff();
+        loadDashboardCounts();
+
+    } catch (e) {
+        console.error(e);
+        toast(e.message, "error");
+    }
+    }
+
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", () => {
     setupMenu();
@@ -424,6 +465,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("addGalleryBtn").onclick = addGallery;
     document.getElementById("addNewsBtn").onclick = addNews;
     document.getElementById("addEventBtn").onclick = addEvent;
+    document.getElementById("addStaffBtn").onclick = addStaff;
 
     logoutBtn.onclick = logout;
 
