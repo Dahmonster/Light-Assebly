@@ -88,32 +88,39 @@ function openLightbox() {
 
     let mediaEl;
 
-    if (item.type === 'video') {
+     if (item.type === 'video') {
 
-        // YouTube handling
+    if (item.url.includes("youtube.com") || item.url.includes("youtu.be")) {
+
+        const embedUrl = convertYouTube(item.url);
+
         mediaEl = document.createElement('iframe');
-mediaEl.src = embedUrl;
-mediaEl.width = "100%";
-mediaEl.height = "100%";
-mediaEl.style.maxHeight = "80vh";
-mediaEl.frameBorder = "0";
-mediaEl.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
-mediaEl.allowFullscreen = true;
-
-        } else {
-            mediaEl = document.createElement('video');
-            mediaEl.src = item.url;
-            mediaEl.controls = true;
-            mediaEl.style.maxWidth = "100%";
-            mediaEl.style.maxHeight = "80vh";
-        }
+        mediaEl.src = embedUrl;
+        mediaEl.width = "100%";
+        mediaEl.height = "100%";
+        mediaEl.style.maxHeight = "80vh";
+        mediaEl.frameBorder = "0";
+        mediaEl.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+        mediaEl.allowFullscreen = true;
 
     } else {
-        mediaEl = document.createElement('img');
+
+        // Local or Cloudinary video
+        mediaEl = document.createElement('video');
         mediaEl.src = item.url;
+        mediaEl.controls = true;
         mediaEl.style.maxWidth = "100%";
         mediaEl.style.maxHeight = "80vh";
     }
+
+} else {
+
+    // Image
+    mediaEl = document.createElement('img');
+    mediaEl.src = item.url;
+    mediaEl.style.maxWidth = "100%";
+    mediaEl.style.maxHeight = "80vh";
+}
 
     container.appendChild(mediaEl);
     caption.textContent = item.caption || '';
