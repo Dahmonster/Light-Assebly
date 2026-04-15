@@ -58,6 +58,13 @@ function confirmDelete() {
     return confirm("Are you sure?");
 }
 
+/* ================= LOGOUT ================= */
+function logout() {
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
+    window.location.href = "login.html";
+}
+
 /* ================= MENU ================= */
 function setupMenu() {
     document.getElementById("menuToggle")?.addEventListener("click", () => {
@@ -67,9 +74,17 @@ function setupMenu() {
 
 /* ================= NAV ================= */
 function switchSection(section) {
+    // hide all
     document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+
+    // show selected
     document.getElementById(`${section}-section`)?.classList.add("active");
 
+    // highlight sidebar
+    document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
+    document.querySelector(`[data-section="${section}"]`)?.classList.add("active");
+
+    // load data
     ({
         hero: loadHero,
         staff: loadStaff,
@@ -243,7 +258,7 @@ async function deleteGallery(id) {
     loadGallery();
 }
 
-/* ================= EVENTS (WITH IMAGE) ================= */
+/* ================= EVENTS ================= */
 async function addEvent() {
     try {
         const file = document.getElementById("eventFile").files[0];
