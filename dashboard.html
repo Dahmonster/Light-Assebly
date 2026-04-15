@@ -168,6 +168,43 @@
 </div>
 </main>
 
+    <!-- EDIT MODAL -->
+<div id="editModal" class="modal">
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+      <h3>Edit Item</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <form id="modalForm">
+
+      <input id="modalTitle" placeholder="Title / Name" />
+
+      <input id="modalSubtitle" placeholder="Position / Slug" />
+
+      <textarea id="modalContent" placeholder="Description / Content"></textarea>
+
+      <input type="datetime-local" id="modalDate" />
+
+      <!-- IMAGE UPLOAD -->
+      <div id="uploadBox" class="upload-box">
+        <p>Click or drag image</p>
+        <input type="file" id="modalImage" hidden />
+        <img id="modalPreview" />
+      </div>
+
+      <button type="submit" class="modal-save-btn">
+        Save Changes
+      </button>
+
+    </form>
+
+  </div>
+
+</div>
+
 <!-- JS -->
 <script src="admin-dashboard.js"></script>
 
