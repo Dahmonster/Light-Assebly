@@ -156,17 +156,25 @@ function nextLightbox() {
  * YOUTUBE FIX (ROBUST)
  ***********************/
 function convertYouTube(url) {
+    if (!url) return "";
+
+    if (url.includes("youtube.com/embed")) {
+        return url;
+    }
+
     let videoId = "";
 
     if (url.includes("youtu.be/")) {
         videoId = url.split("youtu.be/")[1].split("?")[0];
     }
 
-    if (url.includes("watch?v=")) {
+    else if (url.includes("watch?v=")) {
         videoId = url.split("watch?v=")[1].split("&")[0];
     }
 
-    return `https://www.youtube.com/embed/${videoId}`;
+    return videoId 
+        ? `https://www.youtube.com/embed/${videoId}` 
+        : "";
 }
 
 /***********************
