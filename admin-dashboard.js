@@ -99,11 +99,73 @@ let currentEdit = {};
 function openModal(type, item) {
     currentEdit = { type, id: item._id };
 
-    modalTitle.value = item.title || item.name || "";
-    modalSubtitle.value = item.position || item.slug || "";
-    modalContent.value = item.description || item.content || "";
-    modalDate.value = item.eventDate || "";
+    // Reset all fields first
+    modalTitle.value = "";
+    modalSubtitle.value = "";
+    modalContent.value = "";
+    modalDate.value = "";
 
+    // Hide all inputs first
+    modalTitle.style.display = "none";
+    modalSubtitle.style.display = "none";
+    modalContent.style.display = "none";
+    modalDate.style.display = "none";
+
+    // ===== HERO =====
+    if (type === "hero-slides") {
+        modalTitle.style.display = "block";
+        modalTitle.placeholder = "Caption";
+        modalTitle.value = item.caption || "";
+    }
+
+    // ===== STAFF =====
+    if (type === "staff-members") {
+        modalTitle.style.display = "block";
+        modalSubtitle.style.display = "block";
+
+        modalTitle.placeholder = "Name";
+        modalSubtitle.placeholder = "Position";
+
+        modalTitle.value = item.name || "";
+        modalSubtitle.value = item.position || "";
+    }
+
+    // ===== EVENTS =====
+    if (type === "events") {
+        modalTitle.style.display = "block";
+        modalContent.style.display = "block";
+        modalDate.style.display = "block";
+
+        modalTitle.placeholder = "Title";
+
+        modalTitle.value = item.title || "";
+        modalContent.value = item.description || "";
+        modalDate.value = item.eventDate || "";
+    }
+
+    // ===== NEWS =====
+    if (type === "news") {
+        modalTitle.style.display = "block";
+        modalSubtitle.style.display = "block";
+        modalContent.style.display = "block";
+
+        modalTitle.placeholder = "Title";
+        modalSubtitle.placeholder = "Slug";
+
+        modalTitle.value = item.title || "";
+        modalSubtitle.value = item.slug || "";
+        modalContent.value = item.content || "";
+    }
+
+    // ===== GALLERY =====
+    if (type === "gallery-items") {
+        modalContent.style.display = "block";
+        modalContent.placeholder = "Caption";
+
+        modalContent.value = item.caption || "";
+    }
+
+    // Image preview
     modalPreview.src = item.imageUrl || item.url || "";
     modalPreview.style.display = modalPreview.src ? "block" : "none";
 
@@ -130,38 +192,72 @@ if (modalImage) {
 }
 
 /* ================= SAVE EDIT ================= */
-if (modalForm) {
-    modalForm.onsubmit = async (e) => {
-        e.preventDefault();
+modalForm.onsubmit = async (e) => {
+    e.preventDefault();
 
-        try {
-            const form = new FormData();
+    try {
+        const form = new FormData();
 
-            form.append("title", modalTitle.value);
+        const type = currentEdit.type;
+
+        // ===== HERO =====
+        if (type === "hero-slides") {
+            form.append("caption", modalTitle.value);
+        }
+
+        // ===== STAFF =====
+        if (type === "staff-members") {
             form.append("name", modalTitle.value);
             form.append("position", modalSubtitle.value);
-            form.append("description", modalContent.value);
-            form.append("content", modalContent.value);
-            form.append("eventDate", modalDate.value);
-
-            if (modalImage.files[0]) {
-                form.append("image", modalImage.files[0]);
-            }
-
-            await api(`/${currentEdit.type}/${currentEdit.id}`, {
-                method: "PUT",
-                body: form
-            });
-
-            toast("Updated successfully");
-            closeModal();
-            switchSection(currentEdit.type);
-
-        } catch (err) {
-            toast(err.message, "error");
         }
-    };
-}
+
+        // ===== EVENTS =====
+        if (type === "events") {
+            form.append("title", modalTitle.value);
+            form.append("description", modalContent.value);
+            form.append("eventDate", modalDate.value);
+        }
+
+        // ===== NEWS =====
+        if (type === "news") {
+            form.append("title", modalTitle.value);
+            form.append("slug", modalSubtitle.value);
+            form.append("content", modalContent.value);
+        }
+
+        // ===== GALLERY =====
+        if (type === "gallery-items") {
+            form.append("caption", modalContent.value);
+        }
+
+        // Image (for ALL types)
+        if (modalImage.files[0]) {
+            form.append("image", modalImage.files[0]);
+        }
+
+        await api(`/${type}/${currentEdit.id}`, {
+            method: "PUT",
+            body: form
+        });
+
+        toast("Updated successfully");
+        closeModal();
+
+        // reload correct section
+        const reloadMap = {
+            "hero-slides": loadHero,
+            "staff-members": loadStaff,
+            "events": loadEvents,
+            "news": loadNews,
+            "gallery-items": loadGallery
+        };
+
+        reloadMap[type]?.();
+
+    } catch (err) {
+        toast(err.message, "error");
+    }
+};
 
 /* ================= DASHBOARD ================= */
 async function loadDashboardCounts() {
