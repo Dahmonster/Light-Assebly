@@ -115,6 +115,27 @@ function auth(req, res, next) {
     }
 }
 
+app.post("/api/background-images", auth, upload.single("image"), async (req, res) => {
+    try {
+        const url = await safeUpload(req.file, "background");
+        await Background.create({ url });
+        res.json({ success: true });
+    } catch {
+        res.status(500).json({ message: "Background upload failed" });
+    }
+});
+
+app.get("/api/background-images", async (req, res) => {
+    res.json(await Background.find());
+});
+
+app.delete("/api/background-images/:id", auth, async (req, res) => {
+    await Background.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+});
+
+
+
 /* ================= HERO ================= */
 app.post("/api/hero-slides", auth, upload.single("image"), async (req, res) => {
     const imageUrl = await safeUpload(req.file, "hero");
@@ -236,6 +257,65 @@ app.delete("/api/news/:id", auth, async (req, res) => {
     res.json({ success: true });
 });
 
+app.post("/api/gallery-items", auth, upload.single("image"), async (req, res) => {
+    try {
+        const url = req.body.type === "video"
+            ? req.body.url
+            : await safeUpload(req.file, "gallery");
+
+        await Gallery.create({
+            type: req.body.type,
+            url,
+            caption: req.body.caption
+        });
+
+        res.json({ success: true });
+    } catch {
+        res.status(500).json({ message: "Gallery upload failed" });
+    }
+});
+
+app.get("/api/gallery-items", async (req, res) => {
+    res.json(await Gallery.find());
+});
+
+app.delete("/api/gallery-items/:id", auth, async (req, res) => {
+    await Gallery.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+});
+
+/* ================= MESSAGES ================= */
+
+// SEND MESSAGE (from contact form)
+app.post("/api/messages", async (req, res) => {
+    try {
+        console.log("📩 Message received:", req.body);
+
+        await Message.create({
+            name: req.body.name,
+            email: req.body.email,
+            subject: req.body.subject,
+            message: req.body.message
+        });
+
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("❌ Message error:", err);
+        res.status(500).json({ message: "Message failed to send" });
+    }
+});
+
+// GET ALL (admin dashboard)
+app.get("/api/messages", auth, async (req, res) => {
+    res.json(await Message.find());
+});
+
+// DELETE
+app.delete("/api/messages/:id", auth, async (req, res) => {
+    await Message.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+});
 /* ================= START ================= */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
