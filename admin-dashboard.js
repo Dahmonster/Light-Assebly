@@ -1,5 +1,16 @@
 const API = "https://light-assembly.onrender.com/api";
 
+/* ================= DOM ================= */
+const modalImage = document.getElementById("modalImageInput");
+const modalPreview = document.getElementById("imagePreview");
+const uploadBox = document.getElementById("uploadBox");
+
+const modalTitle = document.getElementById("modalTitleInput");
+const modalSubtitle = document.getElementById("modalSubtitleInput");
+const modalContent = document.getElementById("modalContentInput");
+const modalDate = document.getElementById("modalDateInput");
+const modalForm = document.getElementById("modalForm");
+
 /* ================= TOAST ================= */
 function toast(msg, type = "success") {
     const el = document.createElement("div");
@@ -61,12 +72,23 @@ function openModal(type, item) {
     modalPreview.src = item.imageUrl || item.url || "";
     modalPreview.style.display = modalPreview.src ? "block" : "none";
 
-    editModal.style.display = "block";
+    document.getElementById("editModal").classList.add("active");
 }
 
 function closeModal() {
-    editModal.style.display = "none";
+    document.getElementById("editModal").classList.remove("active");
 }
+
+/* ================= IMAGE UPLOAD ================= */
+uploadBox.onclick = () => modalImage.click();
+
+modalImage.onchange = () => {
+    const file = modalImage.files[0];
+    if (file) {
+        modalPreview.src = URL.createObjectURL(file);
+        modalPreview.style.display = "block";
+    }
+};
 
 /* ================= SAVE EDIT ================= */
 modalForm.onsubmit = async (e) => {
@@ -100,7 +122,7 @@ modalForm.onsubmit = async (e) => {
     }
 };
 
-/* ================= DASHBOARD COUNTS ================= */
+/* ================= DASHBOARD ================= */
 async function loadDashboardCounts() {
     const [news, staff, events, messages] = await Promise.all([
         api("/news"),
