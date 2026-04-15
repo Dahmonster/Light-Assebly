@@ -279,6 +279,29 @@ app.get("/api/gallery-items", async (req, res) => {
     res.json(await Gallery.find());
 });
 
+/* ================= GALLERY UPDATE ================= */
+app.put("/api/gallery-items/:id", auth, upload.single("image"), async (req, res) => {
+    try {
+        let url = req.body.url;
+
+        if (req.body.type !== "video" && req.file) {
+            url = await safeUpload(req.file, "gallery");
+        }
+
+        await Gallery.findByIdAndUpdate(req.params.id, {
+            type: req.body.type,
+            caption: req.body.caption,
+            ...(url && { url })
+        });
+
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("❌ Gallery update error:", err);
+        res.status(500).json({ message: "Gallery update failed" });
+    }
+});
+
 /* ================= NEWS UPDATE (FIX) ================= */
 app.put("/api/news/:id", auth, upload.single("image"), async (req, res) => {
     try {
