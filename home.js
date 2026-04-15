@@ -154,7 +154,7 @@ function startStaffAutoScroll() {
 async function setupNewsSection() {
     try {
         const newsData = await Utils.fetchAPI('/news') || [];
-        const latestNews = newsData.slice(0, 3);
+        const latestNews = newsData.slice(0, 1);
         const grid = document.getElementById('newsGrid');
 
         if (!grid) return;
