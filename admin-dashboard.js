@@ -494,11 +494,23 @@ async function loadMessages() {
 
     messagesList.innerHTML = data.map(i => `
     <div class="message-card">
-        <h4>${i.name}</h4>
-        <p><b>Email:</b> ${i.email}</p>
-        <p><b>Subject:</b> ${i.subject}</p>
-        <p>${i.message}</p>
-        <button onclick="deleteMessage('${i._id}')">Delete</button>
+        <div class="message-header">
+            <h4>${i.name}</h4>
+            <span class="message-email">${i.email}</span>
+        </div>
+
+        <div class="message-subject">
+            ${i.subject}
+        </div>
+
+        <p class="message-body">${i.message}</p>
+
+        <div class="message-actions">
+            <a href="mailto:${i.email}?subject=${encodeURIComponent(i.subject)}">
+                Reply
+            </a>
+            <button onclick="deleteMessage('${i._id}')">Delete</button>
+        </div>
     </div>
 `).join("");
 }
