@@ -128,6 +128,7 @@ function openLightbox() {
     container.appendChild(mediaEl);
     caption.textContent = item.caption || '';
 
+    lightbox.style.display = "flex";
     lightbox.classList.add('active');
 }
 
@@ -139,6 +140,7 @@ function closeLightbox() {
     const container = document.getElementById('lightboxMedia');
 
     lightbox.classList.remove('active');
+        lightbox.style.display = "none";
 
     // STOP video/audio properly
     if (container) container.innerHTML = '';
