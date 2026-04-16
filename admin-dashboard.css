@@ -383,3 +383,81 @@ img {
     margin: 10px auto;
     border-radius: 8px;
 }
+
+/* MESSAGE CARD */
+.message-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    border-left: 4px solid #007bff;
+    transition: 0.2s ease;
+}
+
+.message-card:hover {
+    transform: translateY(-2px);
+}
+
+/* HEADER */
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.message-header h4 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.message-email {
+    font-size: 12px;
+    color: #666;
+}
+
+/* SUBJECT */
+.message-subject {
+    font-weight: bold;
+    margin: 8px 0;
+    color: #007bff;
+}
+
+/* BODY */
+.message-body {
+    font-size: 14px;
+    color: #333;
+    line-height: 1.5;
+}
+
+/* ACTIONS */
+.message-actions {
+    margin-top: 10px;
+    text-align: right;
+}
+
+.message-actions button {
+    background: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.message-actions button:hover {
+    background: #b52a37;
+}
+
+.message-actions a {
+    background: #28a745;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    margin-right: 8px;
+}
+
+.message-actions a:hover {
+    background: #1e7e34;
+    }
