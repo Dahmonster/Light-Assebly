@@ -393,6 +393,7 @@ img {
     box-shadow: 0 4px 10px rgba(0,0,0,0.08);
     border-left: 4px solid #007bff;
     transition: 0.2s ease;
+    margin-top: 8px
 }
 
 .message-card:hover {
