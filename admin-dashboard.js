@@ -607,8 +607,14 @@ document.addEventListener("DOMContentLoaded", () => {
     setupMenu();
 
     document.querySelectorAll(".nav-item").forEach(btn => {
-        btn.onclick = () => switchSection(btn.dataset.section);
-    });
+    btn.onclick = () => {
+        switchSection(btn.dataset.section);
+
+        if (window.innerWidth < 768) {
+            document.getElementById("sidebarNav")?.classList.remove("active");
+        }
+    };
+});
 
     document.getElementById("addHeroBtn").onclick = addHero;
     document.getElementById("addBgBtn").onclick = addBg;
