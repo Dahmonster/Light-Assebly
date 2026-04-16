@@ -493,12 +493,14 @@ async function loadMessages() {
     const data = await api("/messages");
 
     messagesList.innerHTML = data.map(i => `
-        <div>
-            <b>${i.name}</b>
-            <p>${i.message}</p>
-            <button onclick="deleteMessage('${i._id}')">Delete</button>
-        </div>
-    `).join("");
+    <div class="message-card">
+        <h4>${i.name}</h4>
+        <p><b>Email:</b> ${i.email}</p>
+        <p><b>Subject:</b> ${i.subject}</p>
+        <p>${i.message}</p>
+        <button onclick="deleteMessage('${i._id}')">Delete</button>
+    </div>
+`).join("");
 }
 
 async function deleteMessage(id) {
