@@ -55,14 +55,19 @@
 
     <!-- Lightbox -->
     <div class="lightbox" id="lightbox">
-        <button class="lightbox-close" id="lightboxClose">&times;</button>
-        <button class="lightbox-prev" id="lightboxPrev">❮</button>
-        <button class="lightbox-next" id="lightboxNext">❯</button>
-        <div class="lightbox-content" id="lightboxMedia">
-            <div class="lightbox-caption" id="lightboxCaption"></div>
-        </div>
-    </div>
+    <button class="lightbox-close" id="lightboxClose">&times;</button>
+    <button class="lightbox-prev" id="lightboxPrev">❮</button>
+    <button class="lightbox-next" id="lightboxNext">❯</button>
 
+    <div class="lightbox-content">
+        <!-- ✅ THIS is where media goes -->
+        <div id="lightboxMedia"></div>
+
+        <!-- ✅ Caption stays separate -->
+        <div class="lightbox-caption" id="lightboxCaption"></div>
+    </div>
+</div>
+    
     <!-- Footer -->
     <footer class="footer" id="footer"></footer>
 
