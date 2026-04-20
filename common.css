@@ -41,17 +41,28 @@ body {
     padding: 0 1rem;
 }
 
-/* Header */
+/* ===== MODERN COLORFUL HEADER ===== */
 .header {
-    background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border-light);
+    background: linear-gradient(135deg, #0f172a, #1e3a8a, #9333ea);
+    background-size: 200% 200%;
+    animation: gradientMove 8s ease infinite;
+
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 1000;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 .header .container {
@@ -95,11 +106,11 @@ body {
 }
 
 .school-name span:first-child {
-    color: var(--primary-blue);
+    color: #ffffff;
 }
 
 .school-name span:last-child {
-    color: var(--secondary-dark);
+    color: var(--accent-gold);
     font-size: 0.75rem;
 }
 
@@ -108,11 +119,12 @@ body {
     display: flex;
     gap: 2rem;
     list-style: none;
+    background: linear-gradient(135deg, #0f172a, #1e3a8a);
 }
 
 .nav-link {
     text-decoration: none;
-    color: var(--text-primary);
+    color: rgba(255,255,255,0.8);
     font-weight: 500;
     padding: 0.5rem 0;
     border-bottom: 2px solid transparent;
@@ -122,8 +134,9 @@ body {
 
 .nav-link:hover,
 .nav-link.active {
-    color: var(--primary-blue);
-    border-bottom-color: var(--primary-blue);
+    color: var(--accent-gold);
+    border-bottom-color: var(--accent-gold);
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
 }
 
 /* Hamburger Menu */
@@ -139,7 +152,7 @@ body {
 .hamburger span {
     width: 25px;
     height: 3px;
-    background-color: var(--text-primary);
+    background-color: white;
     border-radius: 2px;
     transition: all 0.3s ease;
 }
