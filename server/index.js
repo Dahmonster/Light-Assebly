@@ -21,6 +21,11 @@ app.get("/", (req, res) => {
     res.send("API is running...");
 });
 
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+
 /* ================= MONGODB ================= */
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("✅ MongoDB Connected"))
